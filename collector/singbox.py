@@ -102,6 +102,26 @@ def _wait_port(port: int, timeout: float = 15) -> bool:
     return False
 
 
+def _ports_free(base: int, count: int) -> bool:
+    for port in range(base, base + count):
+        with socket.socket() as s:
+            try:
+                s.bind(("127.0.0.1", port))
+            except OSError:
+                return False
+    return True
+
+
+def _free_base(preferred: int, count: int) -> int:
+    """Find `count` consecutive free local ports (runners sometimes have random ports taken)."""
+    base = preferred
+    while base + count < 65000:
+        if _ports_free(base, count):
+            return base
+        base += count + 7
+    raise RuntimeError("no free port range")
+
+
 def _curl(port: int, timeout: int) -> dict | None:
     try:
         r = subprocess.run(
@@ -126,6 +146,7 @@ def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: i
     alive: list[dict] = []
     for start in range(0, len(nodes), batch):
         group = nodes[start:start + batch]
+        base_port = _free_base(base_port, len(group))
         cfg, _, _ = _build(group, base_port)
         if log_file:
             cfg["log"] = {"level": "debug"}

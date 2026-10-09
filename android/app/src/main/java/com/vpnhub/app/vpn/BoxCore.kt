@@ -270,7 +270,8 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         while (v6.hasNext()) v6.next().let { builder.addAddress(it.address(), it.prefix()) }
 
         if (options.autoRoute) {
-            builder.addDnsServer(options.dnsServerAddress.value)
+            val dns = options.dnsServerAddress
+            while (dns.hasNext()) builder.addDnsServer(dns.next())
 
             val r4 = options.inet4RouteAddress
             if (r4.hasNext()) {

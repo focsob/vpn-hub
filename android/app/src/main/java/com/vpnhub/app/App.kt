@@ -29,7 +29,6 @@ class App : Application() {
                 it.debug = BuildConfig.DEBUG
             },
         )
-        runCatching { Libbox.redirectStderr(File(working, "stderr.log").path) }
 
         getSystemService<NotificationManager>()!!.createNotificationChannel(
             NotificationChannel(CHANNEL_VPN, "VPN 連線狀態", NotificationManager.IMPORTANCE_LOW),
