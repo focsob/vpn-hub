@@ -21,7 +21,6 @@ env:
   SING_BOX_VERSION: "1.14.3"
   # 盡量多搵呢幾個國家嘅節點（ISO 國家代碼，逗號分隔）
   PRIORITY_COUNTRIES: "PH,IN,TR,AR,KZ"
-  DEBUG_OPENVPN: "1"
 
 jobs:
   update:
