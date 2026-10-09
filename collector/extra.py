@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import select
 import subprocess
 import tempfile
 import time
@@ -99,21 +100,26 @@ def test_openvpn(nodes: list[dict], concurrency: int = 12, timeout: int = 25) ->
              "--pull-filter", "ignore", "redirect-gateway", "--pull-filter", "ignore", "dhcp-option",
              "--script-security", "0", "--connect-retry-max", "1", "--connect-timeout", "10",
              "--resolv-retry", "0", "--auth-nocache", "--verb", "3"],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         ok = False
         try:
             end = t0 + timeout
-            os.set_blocking(proc.stdout.fileno(), False)
-            buf = ""
-            while time.time() < end and proc.poll() is None:
-                chunk = proc.stdout.read() or ""
-                buf += chunk
-                if "Initialization Sequence Completed" in buf:
-                    ok = True
+            fd = proc.stdout.fileno()
+            buf = b""
+            while time.time() < end:
+                ready, _, _ = select.select([fd], [], [], 0.5)
+                if ready:
+                    chunk = os.read(fd, 65536)
+                    if not chunk:  # process exited
+                        break
+                    buf += chunk
+                    if b"Initialization Sequence Completed" in buf:
+                        ok = True
+                        break
+                    if b"AUTH_FAILED" in buf:
+                        break
+                elif proc.poll() is not None:
                     break
-                if "AUTH_FAILED" in buf:
-                    break
-                time.sleep(0.3)
         finally:
             proc.terminate()
             try:
@@ -125,8 +131,15 @@ def test_openvpn(nodes: list[dict], concurrency: int = 12, timeout: int = 25) ->
             return None
         return {**node, "latency": int((time.time() - t0) * 1000)}
 
+    def safe(args):
+        try:
+            return one(args)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! OpenVPN test error: {e}")
+            return None
+
     with ThreadPoolExecutor(concurrency) as pool:
-        results = list(pool.map(one, enumerate(nodes)))
+        results = list(pool.map(safe, enumerate(nodes)))
     alive = []
     for r in results:
         if r:
