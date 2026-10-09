@@ -141,7 +141,8 @@ def _curl(port: int, timeout: int) -> dict | None:
 
 
 def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: int = 10,
-         base_port: int = 20000, log_file: str | None = None) -> list[dict]:
+         base_port: int = 20000, log_file: str | None = None, warmup: int = 0,
+         retries: int = 1) -> list[dict]:
     """Return nodes that can fetch the Cloudflare trace page, annotated with country/latency."""
     alive: list[dict] = []
     for start in range(0, len(nodes), batch):
@@ -161,8 +162,20 @@ def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: i
                 err = log.read(2000)
                 print(f"  ! sing-box failed to start batch {start}: {err.strip()[:300]}", flush=True)
                 continue
+            if warmup:
+                time.sleep(warmup)  # let tunnel-style endpoints (OpenVPN) finish their handshake
+
+            def probe(i):
+                for attempt in range(retries):
+                    res = _curl(base_port + i, timeout)
+                    if res:
+                        return res
+                    if attempt + 1 < retries:
+                        time.sleep(5)
+                return None
+
             with ThreadPoolExecutor(concurrency) as pool:
-                results = list(pool.map(lambda i: _curl(base_port + i, timeout), range(len(group))))
+                results = list(pool.map(probe, range(len(group))))
             for node, res in zip(group, results):
                 if res:
                     alive.append({**node, **res})

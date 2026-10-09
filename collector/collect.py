@@ -336,7 +336,7 @@ def main() -> None:
     # OpenVPN handshakes are slower, so they get their own batches and a longer timeout
     print("== OpenVPN test (sing-box openvpn-client)")
     os.makedirs("logs", exist_ok=True)
-    alive_ovpn = singbox.test(ovpn, batch=100, concurrency=50, timeout=25, base_port=40000,
+    alive_ovpn = singbox.test(ovpn, batch=100, concurrency=50, timeout=20, base_port=40000, warmup=20, retries=2,
                               log_file="logs/openvpn-debug.log" if ENV("DEBUG_OPENVPN") else None)
     print(f"   {len(alive_ovpn)} working")
 
