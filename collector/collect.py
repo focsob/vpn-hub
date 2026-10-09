@@ -34,7 +34,7 @@ ENV = os.environ.get
 MAX_PER_PROTOCOL = int(ENV("MAX_PER_PROTOCOL", "2500"))
 PER_COUNTRY = int(ENV("PER_COUNTRY", "150"))
 PER_EXIT_IP = int(ENV("PER_EXIT_IP", "3"))
-VPNGATE_LIMIT = int(ENV("VPNGATE_LIMIT", "80"))
+VPNGATE_LIMIT = int(ENV("VPNGATE_LIMIT", "1000"))  # VPN Gate: test every server the API lists
 TEST_TIMEOUT = int(ENV("TEST_TIMEOUT", "10"))
 TEST_CONCURRENCY = int(ENV("TEST_CONCURRENCY", "128"))
 TCP_PROTOCOLS = {"vless", "vmess", "trojan"}
@@ -106,7 +106,11 @@ def fetch_all(sources: list[tuple[str, str]]) -> tuple[list[dict], list[dict], l
 
 def _server_host(n: dict) -> str:
     c = n["config"]
-    return c["peers"][0]["address"] if n["kind"] == "endpoint" else c["server"]
+    if c.get("type") == "wireguard":
+        return c["peers"][0]["address"]
+    if "server" in c:
+        return c["server"]
+    return c["servers"][0]["server"]  # openvpn-client with several remotes
 
 
 def geo_hint(nodes: list[dict]) -> None:
@@ -196,10 +200,8 @@ def prefilter(nodes: list[dict]) -> list[dict]:
             c = n["config"]
             if n["protocol"] in TCP_PROTOCOLS:
                 tasks.append(_tcp_ok(c["server"], c["server_port"], sem))
-            elif n["kind"] == "endpoint":
-                tasks.append(_dns_ok(c["peers"][0]["address"], sem))
             else:
-                tasks.append(_dns_ok(c["server"], sem))
+                tasks.append(_dns_ok(_server_host(n), sem))
         return await asyncio.gather(*tasks)
 
     flags = asyncio.run(run())
@@ -229,13 +231,6 @@ def annotate_ip_types(nodes: list[dict]) -> None:
     for n in nodes:
         if n.get("warp"):
             n["ip_type"], n["isp"] = "dc", "Cloudflare WARP"
-        elif n["kind"] == "openvpn" and not n.get("exit_ip"):
-            remote = extra._remote(n["ovpn"])
-            if remote:
-                try:
-                    n["exit_ip"] = socket.gethostbyname(remote[0])
-                except OSError:
-                    pass
     todo = [n["exit_ip"] for n in nodes if n.get("exit_ip") and "ip_type" not in n]
     info = iptype.classify(todo)
     for n in nodes:
@@ -255,10 +250,7 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
     for n in nodes:
         cc = n["country"]
         seq[cc] += 1
-        if n["kind"] == "openvpn":
-            nid = hashlib.sha1(n["ovpn"].encode()).hexdigest()[:16]
-        else:
-            nid = node_key(n)
+        nid = node_key(n)
         rec = {
             "id": nid,
             "name": f"{cc}-{seq[cc]:03d}",
@@ -269,11 +261,11 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
             "ip_type": n.get("ip_type", "unknown"),
             "isp": n.get("isp", ""),
         }
-        if n["kind"] == "openvpn":
-            rec["ovpn"] = n["ovpn"]
-        else:
-            rec["config"] = n["config"]
+        rec["config"] = n["config"]
+        if n.get("link"):
             rec["link"] = clean_link(n["link"]) + "#" + rec["name"]
+        if n.get("ovpn"):
+            rec["ovpn"] = n["ovpn"]  # original profile, for use in other OpenVPN apps
         records.append(rec)
 
     by_cc = defaultdict(list)
@@ -327,7 +319,8 @@ def main() -> None:
     proxies = cap_per_protocol(proxies)
     print("== validate config")
     proxies = singbox.validate(proxies) + singbox.validate(warp)
-    print(f"   {len(proxies)} accepted by sing-box")
+    ovpn = singbox.validate(ovpn)
+    print(f"   {len(proxies)} proxy + {len(ovpn)} OpenVPN accepted by sing-box")
     print("== reachability prefilter")
     proxies = prefilter(proxies)
     print(f"   {len(proxies)} reachable")
@@ -340,11 +333,12 @@ def main() -> None:
             n["country"] = "WARP"
     print(f"   {len(alive)} working")
 
-    print("== OpenVPN test")
-    alive_ovpn = extra.test_openvpn(ovpn)
+    # OpenVPN handshakes are slower, so they get their own batches and a longer timeout
+    print("== OpenVPN test (sing-box openvpn-client)")
+    alive_ovpn = singbox.test(ovpn, batch=100, concurrency=50, timeout=25, base_port=40000)
     print(f"   {len(alive_ovpn)} working")
 
-    final = finalize(alive) + sorted(alive_ovpn, key=lambda n: n["latency"])
+    final = finalize(alive + alive_ovpn)
     annotate_ip_types(final)
     stats["working"] = len(final)
     stats["by_ip_type"] = dict(Counter(n.get("ip_type", "unknown") for n in final))

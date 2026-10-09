@@ -25,27 +25,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.vpnhub.app.data.Prefs
-import com.vpnhub.app.vpn.OpenVpnBridge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(
     onDismiss: () -> Unit,
     onSaved: (modeChanged: Boolean, urlChanged: Boolean) -> Unit,
-    onInstallOpenVpn: () -> Unit,
 ) {
-    val context = LocalContext.current
     var url by remember { mutableStateOf(Prefs.nodesUrl) }
     var auto by remember { mutableStateOf(Prefs.autoUpdate) }
     var size by remember { mutableStateOf(Prefs.groupSize.toString()) }
     var mode by remember { mutableStateOf(Prefs.mode) }
     var port by remember { mutableStateOf(Prefs.proxyPort.toString()) }
     var allowLan by remember { mutableStateOf(Prefs.proxyAllowLan) }
-    val openVpnInstalled = remember { OpenVpnBridge.isInstalled(context) }
     val portValue = port.toIntOrNull()
     val portValid = portValue != null && portValue in 1024..65535
 
@@ -126,14 +121,6 @@ fun SettingsDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("每小時自動更新節點", Modifier.weight(1f))
                     Switch(checked = auto, onCheckedChange = { auto = it })
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (openVpnInstalled) "OpenVPN for Android：已安裝" else "OpenVPN for Android：未安裝",
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    if (!openVpnInstalled) TextButton(onClick = onInstallOpenVpn) { Text("安裝") }
                 }
             }
         },

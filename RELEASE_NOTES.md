@@ -2,6 +2,14 @@
 
 每次 App 有改動，最頂嗰段會自動顯示喺 GitHub Releases 嗰個版本度。
 
+## 2026-10-10 · OpenVPN（VPN Gate）喺 App 內直接連線
+
+- OpenVPN 節點而家喺 App 入面直接連線，唔再需要另外安裝「OpenVPN for Android」。
+- OpenVPN 節點同其他節點一樣，可以揀國家自動切換、指定單一節點，亦支援代理模式。
+- VPN Gate 伺服器唔再只測評分最高 80 個，清單有幾多就測幾多。
+- OpenVPN 節點改為用實測出口國家分類，並顯示 IP 類型。
+- VPN 核心升級至 sing-box 1.14.3。
+
 ## 2026-10-10 · Releases 顯示更新內容
 
 - GitHub Releases 每個版本會列出今次更新咗乜嘢。

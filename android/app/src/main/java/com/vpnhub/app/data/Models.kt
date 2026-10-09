@@ -43,7 +43,6 @@ data class Node(
     @SerialName("ip_type") val ipType: String = "unknown",
     val isp: String = "",
 ) {
-    val isOpenVpn: Boolean get() = kind == "openvpn"
 }
 
 /** What the user picked on the main screen. */

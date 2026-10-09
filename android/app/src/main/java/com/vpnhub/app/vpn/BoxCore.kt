@@ -18,15 +18,20 @@ import com.vpnhub.app.data.ConfigBuilder
 import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.ui.MainActivity
+import io.nekohasekai.libbox.BridgeOptions
+import io.nekohasekai.libbox.BridgeSession
 import io.nekohasekai.libbox.CommandServer
 import io.nekohasekai.libbox.CommandServerHandler
 import io.nekohasekai.libbox.ConnectionOwner
 import io.nekohasekai.libbox.InterfaceUpdateListener
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.LocalDNSTransport
+import io.nekohasekai.libbox.NeighborUpdateListener
 import io.nekohasekai.libbox.NetworkInterfaceIterator
 import io.nekohasekai.libbox.OverrideOptions
 import io.nekohasekai.libbox.PlatformInterface
+import io.nekohasekai.libbox.PlatformUser
+import io.nekohasekai.libbox.ShellSession
 import io.nekohasekai.libbox.StringIterator
 import io.nekohasekai.libbox.SystemProxyStatus
 import io.nekohasekai.libbox.TunOptions
@@ -40,8 +45,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.net.Inet6Address
 import java.net.InetSocketAddress
-import java.security.KeyStore
-import java.util.Base64
 import io.nekohasekai.libbox.Notification as BoxNotification
 import io.nekohasekai.libbox.NetworkInterface as BoxInterface
 
@@ -239,6 +242,10 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         Log.d(TAG, message ?: "")
     }
 
+    override fun triggerNativeCrash() {}
+
+    override fun connectSSHAgent(): Int = -1
+
     // ------------------------------------------------------------------ PlatformInterface
 
     override fun localDNSTransport(): LocalDNSTransport = LocalResolver
@@ -378,23 +385,43 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
 
     override fun readWIFIState(): WIFIState? = null
 
-    override fun systemCertificates(): StringIterator {
-        val certs = mutableListOf<String>()
-        runCatching {
-            val ks = KeyStore.getInstance("AndroidCAStore")
-            ks.load(null, null)
-            val aliases = ks.aliases()
-            val enc = Base64.getMimeEncoder(64, "\n".toByteArray())
-            while (aliases.hasMoreElements()) {
-                val cert = ks.getCertificate(aliases.nextElement()) ?: continue
-                certs += "-----BEGIN CERTIFICATE-----\n" + enc.encodeToString(cert.encoded) +
-                    "\n-----END CERTIFICATE-----"
-            }
-        }
-        return StringArray(certs)
-    }
-
     override fun clearDNSCache() {}
 
-    override fun sendNotification(notification: BoxNotification) {}
+    override fun sendNotification(notification: BoxNotification?) {}
+
+    override fun cancelNotification(identifier: String?, typeID: Int) {}
+
+    // Features of the core this app does not use (LAN neighbours, SSH shell, Tailscale, bridges)
+    override fun startNeighborMonitor(listener: NeighborUpdateListener?) {}
+
+    override fun closeNeighborMonitor(listener: NeighborUpdateListener?) {}
+
+    override fun registerMyInterface(name: String?) {}
+
+    override fun usePlatformShell(): Boolean = false
+
+    override fun checkPlatformShell() {
+        error("not supported")
+    }
+
+    override fun openShellSession(
+        user: PlatformUser?,
+        command: String?,
+        environ: StringIterator?,
+        term: String?,
+        rows: Int,
+        cols: Int,
+    ): ShellSession = error("not supported")
+
+    override fun lookupUser(username: String?): PlatformUser = error("not supported")
+
+    override fun lookupSFTPServer(): String = error("not supported")
+
+    override fun readSystemSSHHostKey(): String = error("not supported")
+
+    override fun tailscaleHostname(): String = "vpnhub"
+
+    override fun usePlatformBridge(): Boolean = false
+
+    override fun createBridge(options: BridgeOptions?): BridgeSession = error("not supported")
 }

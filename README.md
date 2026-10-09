@@ -18,7 +18,7 @@ GitHub Actions（每小時）                         你部手機
 
 - 國家係按「出口 Internet Protocol（IP）地址」判斷，即係網站見到你喺邊，唔係節點伺服器登記喺邊。
 - VLESS／VMess／Trojan／Hysteria2／WireGuard 由 App 內置嘅 sing-box 核心直接連線。
-- OpenVPN：sing-box 冇 OpenVPN 引擎，App 會經官方接口交畀免費嘅「OpenVPN for Android」連線（第一次撳 OpenVPN 節點會提你安裝同授權）。
+- OpenVPN（主要來自 VPN Gate）：由 sing-box 1.14 內置嘅 OpenVPN 引擎喺 App 內直接連線，唔使另裝其他 App。
 - WireGuard：公開清單幾乎冇 WireGuard 節點，所以自動註冊 Cloudflare WARP（顯示為「Cloudflare WARP」，出口係就近嘅 Cloudflare 機房）。
 
 ## 安裝步驟（用手機都做到）

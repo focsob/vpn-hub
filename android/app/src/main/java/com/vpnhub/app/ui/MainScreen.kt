@@ -54,7 +54,6 @@ import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.data.Protocols
 import com.vpnhub.app.data.Selection
-import com.vpnhub.app.vpn.OpenVpnBridge
 import com.vpnhub.app.vpn.VpnState
 import java.time.Instant
 import java.time.ZoneId
@@ -89,9 +88,7 @@ fun MainScreen(
     onDisconnect: () -> Unit,
     onRefresh: () -> Unit,
     onSettingsSaved: (modeChanged: Boolean, urlChanged: Boolean) -> Unit,
-    onOpenVpn: (Node) -> Unit,
     onSelectionChanged: () -> Unit,
-    onInstallOpenVpn: () -> Unit,
 ) {
     val list by NodeRepository.list.collectAsStateWithLifecycle()
     val refreshing by NodeRepository.refreshing.collectAsStateWithLifecycle()
@@ -102,7 +99,6 @@ fun MainScreen(
     val selection by Prefs.selection.collectAsStateWithLifecycle()
     val protocols by Prefs.protocols.collectAsStateWithLifecycle()
     val ipTypes by Prefs.ipTypes.collectAsStateWithLifecycle()
-    val ovpnStatus by OpenVpnBridge.status.collectAsStateWithLifecycle()
 
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showSettings by remember { mutableStateOf(false) }
@@ -152,15 +148,6 @@ fun MainScreen(
                     onConnect = onConnect,
                     onDisconnect = onDisconnect,
                 )
-            }
-            if (ovpnStatus.isNotBlank() && ovpnStatus != "NOPROCESS") {
-                item {
-                    Text(
-                        "OpenVPN for Android 狀態：$ovpnStatus",
-                        Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
             item {
                 Row(
@@ -224,13 +211,7 @@ fun MainScreen(
                         nodes = sorted,
                         selected = selection == Selection.Country(cc),
                         expanded = isOpen,
-                        onClick = {
-                            if (sorted.all { it.isOpenVpn }) {
-                                expanded = if (isOpen) expanded - cc else expanded + cc
-                            } else {
-                                select(Selection.Country(cc))
-                            }
-                        },
+                        onClick = { select(Selection.Country(cc)) },
                         onToggle = { expanded = if (isOpen) expanded - cc else expanded + cc },
                     )
                 }
@@ -239,9 +220,7 @@ fun MainScreen(
                         NodeRow(
                             node = node,
                             selected = selection == Selection.Single(node.id),
-                            onClick = {
-                                if (node.isOpenVpn) onOpenVpn(node) else select(Selection.Single(node.id))
-                            },
+                            onClick = { select(Selection.Single(node.id)) },
                         )
                     }
                 }
@@ -250,7 +229,7 @@ fun MainScreen(
     }
 
     if (showSettings) {
-        SettingsDialog(onDismiss = { showSettings = false }, onSaved = onSettingsSaved, onInstallOpenVpn = onInstallOpenVpn)
+        SettingsDialog(onDismiss = { showSettings = false }, onSaved = onSettingsSaved)
     }
 }
 

@@ -51,6 +51,96 @@ def _remote(ovpn: str) -> tuple[str, int, str] | None:
     return m.group(1), int(m.group(2)), "tcp" if proto.startswith("tcp") else "udp"
 
 
+_BLOCK = re.compile(r"(?s)<([a-z0-9-]+)>\s*(.*?)\s*</\1>")
+
+
+def ovpn_to_singbox(text: str) -> dict | None:
+    """Translate a client .ovpn profile into a sing-box (1.14+) openvpn-client endpoint."""
+    blocks = {k.lower(): v.strip() for k, v in _BLOCK.findall(text)}
+    body = _BLOCK.sub("", text)
+    opts: dict[str, list[str]] = {}
+    remotes: list[list[str]] = []
+    for line in body.splitlines():
+        parts = line.strip().split()
+        if not parts or parts[0].startswith(("#", ";")):
+            continue
+        key = parts[0].lower()
+        if key == "remote":
+            remotes.append(parts[1:])
+        else:
+            opts[key] = parts[1:]
+    if not remotes or "ca" not in blocks:
+        return None
+    if "secret" in opts or "auth-user-pass" in opts or "pkcs12" in opts:
+        return None  # static-key mode, password login or PKCS#12 bundles are not handled
+    proto = (opts.get("proto") or ["udp"])[0].lower()
+    network = "tcp" if proto.startswith("tcp") else "udp"
+    default_port = int((opts.get("port") or ["1194"])[0])
+    servers = []
+    for r in remotes:
+        try:
+            port = int(r[1]) if len(r) > 1 else default_port
+        except ValueError:
+            continue
+        net = network if len(r) < 3 else ("tcp" if r[2].lower().startswith("tcp") else "udp")
+        servers.append({"server": r[0], "server_port": port, "network": net})
+    if not servers:
+        return None
+
+    tls: dict = {"certificate": blocks["ca"], "certificate_profile": "insecure", "version_min": "1.0"}
+    if "cert" in blocks and "key" in blocks:
+        tls["client_certificate"] = blocks["cert"]
+        tls["client_key"] = blocks["key"]
+    rct = (opts.get("remote-cert-tls") or [""])[0].lower()
+    tls["remote_certificate_tls"] = rct if rct in ("server", "client") else "none"
+    if "verify-x509-name" in opts and opts["verify-x509-name"]:
+        args = opts["verify-x509-name"]
+        tls["server_name"] = args[0].strip("'\"")
+        kind = args[1].lower() if len(args) > 1 else "subject"
+        tls["server_name_type"] = {"name": "name", "name-prefix": "name-prefix"}.get(kind, "subject")
+    for block, wrap in (("tls-crypt-v2", "tls_crypt_v2"), ("tls-crypt", "tls_crypt"), ("tls-auth", "tls_auth")):
+        if block in blocks:
+            cw = {"type": wrap, "key": blocks[block]}
+            if wrap == "tls_auth":
+                kd = (opts.get("key-direction") or [""])[0]
+                if kd in ("0", "1"):
+                    cw["direction"] = "client" if kd == "1" else "server"
+            tls["control_wrap"] = cw
+            break
+
+    cfg: dict = {"type": "openvpn-client", "network": network, "tls": tls, "mtu": 1400}
+    if len(servers) == 1:
+        cfg["server"], cfg["server_port"], cfg["network"] = servers[0]["server"], servers[0]["server_port"], \
+            servers[0]["network"]
+    else:
+        cfg["servers"] = servers
+    cipher = (opts.get("cipher") or [""])[0]
+    if "data-ciphers" in opts and opts["data-ciphers"]:
+        ciphers = opts["data-ciphers"][0].split(":")
+    else:
+        ciphers = ["AES-256-GCM", "AES-128-GCM", "CHACHA20-POLY1305"]
+    if cipher and cipher not in ciphers:
+        ciphers.append(cipher)
+    cfg["data_ciphers"] = ciphers
+    if cipher:
+        cfg["data_ciphers_fallback"] = cipher
+    if opts.get("auth"):
+        cfg["auth"] = opts["auth"][0]
+    if "comp-lzo" in opts or "compress" in opts:
+        cfg["allow_compression"] = "asym"
+    return cfg
+
+
+def _ovpn_node(text: str, country_hint: str | None, exit_ip: str = "", score: int = 0) -> dict | None:
+    """Wrap an .ovpn profile as a node that sing-box can test and the app can use directly."""
+    tidy = _tidy_ovpn(text)
+    cfg = ovpn_to_singbox(tidy)
+    if not cfg:
+        return None
+    return {"protocol": "openvpn", "kind": "endpoint", "config": cfg, "ovpn": tidy, "link": "",
+            "country_hint": country_hint, "exit_ip_hint": exit_ip, "score": score}
+
+
 def vpngate(url: str, limit: int, priority: set[str] | None = None) -> list[dict]:
     text = http_get(url)
     rows = [ln for ln in text.splitlines() if ln and not ln.startswith("*")]
@@ -65,9 +155,9 @@ def vpngate(url: str, limit: int, priority: set[str] | None = None) -> list[dict
             continue
         if "remote " not in ovpn:
             continue
-        out.append({"protocol": "openvpn", "kind": "openvpn", "ovpn": _tidy_ovpn(ovpn),
-                    "country_hint": (row.get("CountryShort") or "ZZ").upper()[:2], "score": score,
-                    "exit_ip": (row.get("IP") or "").strip()})
+        node = _ovpn_node(ovpn, (row.get("CountryShort") or "ZZ").upper()[:2], (row.get("IP") or "").strip(), score)
+        if node:
+            out.append(node)
     out.sort(key=lambda n: -n["score"])
     priority = priority or set()
     top = out[:limit]
@@ -80,7 +170,8 @@ def ovpn_url(url: str) -> list[dict]:
     text = http_get(url)
     if "remote " not in text:
         return []
-    return [{"protocol": "openvpn", "kind": "openvpn", "ovpn": _tidy_ovpn(text), "country_hint": None}]
+    node = _ovpn_node(text, None)
+    return [node] if node else []
 
 
 def test_openvpn(nodes: list[dict], concurrency: int = 12, timeout: int = 25) -> list[dict]:
