@@ -52,7 +52,9 @@ jobs:
           cd /tmp/sing-box
           make lib_install
           export PATH="$PATH:$(go env GOPATH)/bin"
-          go run ./cmd/internal/build_libbox -target android -platform android/arm64
+          set -o pipefail
+          mkdir -p "$GITHUB_WORKSPACE/logs"
+          go run ./cmd/internal/build_libbox -target android -platform android/arm64 2>&1 | tail -n 300 > "$GITHUB_WORKSPACE/logs/libbox.log"
           mkdir -p "$GITHUB_WORKSPACE/android/app/libs"
           cp libbox.aar "$GITHUB_WORKSPACE/android/app/libs/libbox.aar"
 
@@ -67,11 +69,25 @@ jobs:
       - name: Build APK
         working-directory: android
         run: |
+          set -o pipefail
+          mkdir -p "$GITHUB_WORKSPACE/logs"
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace \
             -PnodesUrl="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/nodes/nodes.json" \
-            -PbuildNumber="${GITHUB_RUN_NUMBER}"
+            -PbuildNumber="${GITHUB_RUN_NUMBER}" 2>&1 | tee "$GITHUB_WORKSPACE/logs/gradle.log"
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/VPNHub.apk"
+
+      - name: Upload build log to the logs branch
+        if: always()
+        run: |
+          mkdir -p logs && cd logs
+          [ -f gradle.log ] && tail -n 400 gradle.log > gradle-tail.log && grep -n "^e: \|error:\|FAILURE\|What went wrong" -A3 gradle.log > gradle-errors.log || true
+          git init -q -b logs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "build log $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" logs:logs-build
 
       - uses: actions/upload-artifact@v4
         with:

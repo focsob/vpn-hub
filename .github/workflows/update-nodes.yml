@@ -44,7 +44,9 @@ jobs:
       - name: Collect and test nodes
         # root is needed to open TUN devices for the OpenVPN handshake test
         run: |
-          sudo -E env "PATH=$PATH" python collector/collect.py --out out
+          set -o pipefail
+          mkdir -p logs
+          sudo -E env "PATH=$PATH" python -u collector/collect.py --out out 2>&1 | tee logs/update-nodes.log
           sudo chown -R "$(id -u):$(id -g)" out
 
       - name: Publish to the nodes branch
@@ -56,3 +58,14 @@ jobs:
           git add -A
           git commit -qm "nodes $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" nodes
+
+      - name: Upload run log to the logs branch
+        if: always()
+        run: |
+          mkdir -p logs && cd logs
+          git init -q -b logs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "update-nodes log $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" logs:logs-update
