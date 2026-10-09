@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["android/**", ".github/workflows/build-apk.yml"]
+    paths: ["android/**", "RELEASE_NOTES.md", ".github/workflows/build-apk.yml", ".github/scripts/**"]
 
 permissions:
   contents: write
@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Restore sing-box core
         id: libbox
@@ -94,11 +96,14 @@ jobs:
           name: VPNHub-apk
           path: VPNHub.apk
 
+      - name: Prepare release notes
+        run: python3 .github/scripts/release_notes.py > release-notes.md
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: VPN Hub ${{ github.run_number }}
+          name: VPN Hub 1.0.${{ github.run_number }}
           files: VPNHub.apk
           make_latest: true
-          body: 下載 VPNHub.apk 安裝（Android 16 或以上）。
+          body_path: release-notes.md
