@@ -25,3 +25,20 @@ https://raw.githubusercontent.com/mfuu/v2ray/master/sub
 
 vpngate http://www.vpngate.net/api/iphone/
 warp 3
+
+# 優先國家：菲律賓、印度、土耳其、阿根廷、哈薩克斯坦（按國家分好嘅清單）
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Philippines.txt
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/India.txt
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Tr.txt
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Argentina.txt
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Kazakhstan.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Philippines.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/India.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Turkey.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Kazakhstan.txt
+https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/IN.txt
+https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt
+https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KZ.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/India.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Turkey.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Kazakhstan.txt

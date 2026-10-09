@@ -4,10 +4,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,19 +31,82 @@ import androidx.compose.ui.unit.dp
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.vpn.OpenVpnBridge
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsDialog(onDismiss: () -> Unit, onSaved: () -> Unit, onInstallOpenVpn: () -> Unit) {
+fun SettingsDialog(
+    onDismiss: () -> Unit,
+    onSaved: (modeChanged: Boolean, urlChanged: Boolean) -> Unit,
+    onInstallOpenVpn: () -> Unit,
+) {
     val context = LocalContext.current
     var url by remember { mutableStateOf(Prefs.nodesUrl) }
     var auto by remember { mutableStateOf(Prefs.autoUpdate) }
     var size by remember { mutableStateOf(Prefs.groupSize.toString()) }
+    var mode by remember { mutableStateOf(Prefs.mode) }
+    var port by remember { mutableStateOf(Prefs.proxyPort.toString()) }
+    var allowLan by remember { mutableStateOf(Prefs.proxyAllowLan) }
     val openVpnInstalled = remember { OpenVpnBridge.isInstalled(context) }
+    val portValue = port.toIntOrNull()
+    val portValid = portValue != null && portValue in 1024..65535
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("設定") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("連線模式", style = MaterialTheme.typography.labelLarge)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = mode == Prefs.MODE_VPN,
+                        onClick = { mode = Prefs.MODE_VPN },
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    ) { Text("VPN 模式") }
+                    SegmentedButton(
+                        selected = mode == Prefs.MODE_PROXY,
+                        onClick = { mode = Prefs.MODE_PROXY },
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    ) { Text("代理模式") }
+                }
+                Text(
+                    if (mode == Prefs.MODE_VPN) {
+                        "全部 App 經 VPN 連出去。"
+                    } else {
+                        "唔開 VPN，只開一個 SOCKS5／HTTP 代理端口，畀其他 App（例如 AdGuard）設定使用。"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (mode == Prefs.MODE_PROXY) {
+                    OutlinedTextField(
+                        value = port,
+                        onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                        label = { Text("代理端口（預設 10808）") },
+                        isError = !portValid,
+                        supportingText = { if (!portValid) Text("請輸入 1024 至 65535") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("容許同一網絡嘅其他裝置連線")
+                            Text(
+                                "例如經熱點分享畀電腦用。開咗之後同一 Wi-Fi 嘅人都用得，冇密碼保護。",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Switch(checked = allowLan, onCheckedChange = { allowLan = it })
+                    }
+                    Text(
+                        "AdGuard 設定（大約位置）：設定 → 過濾 → 網絡 → 代理 → 新增代理伺服器：類型 SOCKS5，" +
+                            "主機 127.0.0.1，端口 ${portValue ?: 10808}。並喺 AdGuard 嘅 App 管理入面，" +
+                            "將 VPN Hub 設為唔經 AdGuard，避免流量兜圈。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                HorizontalDivider()
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
@@ -68,14 +138,21 @@ fun SettingsDialog(onDismiss: () -> Unit, onSaved: () -> Unit, onInstallOpenVpn:
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                val changed = url.trim() != Prefs.nodesUrl
-                Prefs.nodesUrl = url
-                Prefs.autoUpdate = auto
-                size.toIntOrNull()?.let { Prefs.groupSize = it }
-                onDismiss()
-                if (changed) onSaved()
-            }) { Text("儲存") }
+            TextButton(
+                enabled = mode != Prefs.MODE_PROXY || portValid,
+                onClick = {
+                    val urlChanged = url.trim() != Prefs.nodesUrl
+                    val modeChanged = mode != Prefs.mode
+                    Prefs.nodesUrl = url
+                    Prefs.autoUpdate = auto
+                    size.toIntOrNull()?.let { Prefs.groupSize = it }
+                    Prefs.mode = mode
+                    if (portValid) Prefs.proxyPort = portValue!!
+                    Prefs.proxyAllowLan = allowLan
+                    onDismiss()
+                    onSaved(modeChanged, urlChanged)
+                },
+            ) { Text("儲存") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
     )

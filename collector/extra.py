@@ -51,7 +51,7 @@ def _remote(ovpn: str) -> tuple[str, int, str] | None:
     return m.group(1), int(m.group(2)), "tcp" if proto.startswith("tcp") else "udp"
 
 
-def vpngate(url: str, limit: int) -> list[dict]:
+def vpngate(url: str, limit: int, priority: set[str] | None = None) -> list[dict]:
     text = http_get(url)
     rows = [ln for ln in text.splitlines() if ln and not ln.startswith("*")]
     if rows and rows[0].startswith("#"):
@@ -69,7 +69,11 @@ def vpngate(url: str, limit: int) -> list[dict]:
                     "country_hint": (row.get("CountryShort") or "ZZ").upper()[:2], "score": score,
                     "exit_ip": (row.get("IP") or "").strip()})
     out.sort(key=lambda n: -n["score"])
-    return out[:limit]
+    priority = priority or set()
+    top = out[:limit]
+    # always keep servers in priority countries, even when their score is low
+    extra = [n for n in out[limit:] if n["country_hint"] in priority]
+    return top + extra
 
 
 def ovpn_url(url: str) -> list[dict]:

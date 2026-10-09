@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 object Prefs {
+    const val MODE_VPN = "vpn"
+    const val MODE_PROXY = "proxy"
+
     private val sp: SharedPreferences by lazy { App.instance.getSharedPreferences("settings", Context.MODE_PRIVATE) }
 
     private val _selection = MutableStateFlow(Selection.decode(sp.getString("selection", null)))
@@ -35,6 +38,20 @@ object Prefs {
     var groupSize: Int
         get() = sp.getInt("group_size", 20)
         set(v) = sp.edit().putInt("group_size", v.coerceIn(1, 100)).apply()
+
+    /** VPN mode (whole phone through a TUN) or proxy mode (SOCKS5/HTTP port only). */
+    var mode: String
+        get() = sp.getString("mode", MODE_VPN) ?: MODE_VPN
+        set(v) = sp.edit().putString("mode", v).apply()
+
+    var proxyPort: Int
+        get() = sp.getInt("proxy_port", 10808)
+        set(v) = sp.edit().putInt("proxy_port", v.coerceIn(1024, 65535)).apply()
+
+    /** Listen on all interfaces so other devices on the same Wi-Fi / hotspot can use the proxy. */
+    var proxyAllowLan: Boolean
+        get() = sp.getBoolean("proxy_allow_lan", false)
+        set(v) = sp.edit().putBoolean("proxy_allow_lan", v).apply()
 
     /** Wanted on/off state, so the hourly job knows whether to reload the tunnel. */
     var wantRunning: Boolean

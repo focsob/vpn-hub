@@ -5,3 +5,4 @@ android/local.properties
 android/app/libs/*.aar
 out/
 __pycache__/
+collector/Country.mmdb

@@ -88,6 +88,7 @@ fun MainScreen(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     onRefresh: () -> Unit,
+    onSettingsSaved: (modeChanged: Boolean, urlChanged: Boolean) -> Unit,
     onOpenVpn: (Node) -> Unit,
     onSelectionChanged: () -> Unit,
     onInstallOpenVpn: () -> Unit,
@@ -249,7 +250,7 @@ fun MainScreen(
     }
 
     if (showSettings) {
-        SettingsDialog(onDismiss = { showSettings = false }, onSaved = onRefresh, onInstallOpenVpn = onInstallOpenVpn)
+        SettingsDialog(onDismiss = { showSettings = false }, onSaved = onSettingsSaved, onInstallOpenVpn = onInstallOpenVpn)
     }
 }
 

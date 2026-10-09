@@ -30,7 +30,7 @@ class QuickTile : TileService() {
         when (VpnState.status.value) {
             VpnState.Status.Connected, VpnState.Status.Starting -> VpnController.stop(this)
             else -> {
-                if (VpnService.prepare(this) == null) {
+                if (!VpnController.needsVpnPermission() || VpnService.prepare(this) == null) {
                     VpnController.start(this)
                 } else {
                     val intent = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

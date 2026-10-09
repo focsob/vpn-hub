@@ -17,6 +17,7 @@ import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.vpn.OpenVpnBridge
 import com.vpnhub.app.vpn.VpnController
 import com.vpnhub.app.vpn.VpnState
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -51,6 +52,7 @@ class MainActivity : ComponentActivity() {
                     onConnect = ::connect,
                     onDisconnect = { VpnController.stop(this) },
                     onRefresh = ::refresh,
+                    onSettingsSaved = ::applySettings,
                     onOpenVpn = ::connectOpenVpn,
                     onSelectionChanged = { VpnController.reload(this) },
                     onInstallOpenVpn = ::installOpenVpn,
@@ -74,8 +76,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun connect() {
-        val intent = VpnService.prepare(this)
+        val intent = if (VpnController.needsVpnPermission()) VpnService.prepare(this) else null
         if (intent != null) vpnPermission.launch(intent) else VpnController.start(this)
+    }
+
+    /** Called after settings change; restarts the service when the mode switched while running. */
+    private fun applySettings(modeChanged: Boolean, urlChanged: Boolean) {
+        if (urlChanged) refresh()
+        val running = VpnState.status.value == VpnState.Status.Connected
+        if (modeChanged && running) {
+            VpnController.stop(this)
+            lifecycleScope.launch {
+                VpnState.status.first { it == VpnState.Status.Stopped }
+                connect()
+            }
+        } else if (running) {
+            VpnController.reload(this)
+        }
     }
 
     private fun connectOpenVpn(node: Node) {

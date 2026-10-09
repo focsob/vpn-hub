@@ -15,6 +15,14 @@ object ConfigBuilder {
 
     data class Plan(val nodes: List<Node>, val label: String)
 
+    sealed class Inbound {
+        /** VPN mode: capture all traffic through a TUN interface. */
+        data object Tun : Inbound()
+
+        /** Proxy mode: SOCKS5 + HTTP on one port. */
+        data class Proxy(val port: Int, val allowLan: Boolean) : Inbound()
+    }
+
     fun plan(
         list: NodeList?,
         selection: Selection,
@@ -54,7 +62,7 @@ object ConfigBuilder {
         }
     }
 
-    fun build(plan: Plan): String {
+    fun build(plan: Plan, inbound: Inbound = Inbound.Tun): String {
         val outbounds = mutableListOf<JsonObject>()
         val endpoints = mutableListOf<JsonObject>()
         val tags = mutableListOf<String>()
@@ -87,17 +95,26 @@ object ConfigBuilder {
                 put("strategy", "prefer_ipv4")
             }
             putJsonArray("inbounds") {
-                addJsonObject {
-                    put("type", "tun")
-                    put("tag", "tun-in")
-                    putJsonArray("address") {
-                        add("172.19.0.1/30")
-                        add("fdfe:dcba:9876::1/126")
+                when (inbound) {
+                    Inbound.Tun -> addJsonObject {
+                        put("type", "tun")
+                        put("tag", "tun-in")
+                        putJsonArray("address") {
+                            add("172.19.0.1/30")
+                            add("fdfe:dcba:9876::1/126")
+                        }
+                        put("mtu", 9000)
+                        put("auto_route", true)
+                        put("strict_route", true)
+                        put("stack", "mixed")
                     }
-                    put("mtu", 9000)
-                    put("auto_route", true)
-                    put("strict_route", true)
-                    put("stack", "mixed")
+                    is Inbound.Proxy -> addJsonObject {
+                        // "mixed" answers both SOCKS5 and HTTP proxy requests on the same port
+                        put("type", "mixed")
+                        put("tag", "mixed-in")
+                        put("listen", if (inbound.allowLan) "0.0.0.0" else "127.0.0.1")
+                        put("listen_port", inbound.port)
+                    }
                 }
             }
             put(

@@ -38,6 +38,10 @@ VPNGATE_LIMIT = int(ENV("VPNGATE_LIMIT", "80"))
 TEST_TIMEOUT = int(ENV("TEST_TIMEOUT", "10"))
 TEST_CONCURRENCY = int(ENV("TEST_CONCURRENCY", "128"))
 TCP_PROTOCOLS = {"vless", "vmess", "trojan"}
+# Countries to collect as many nodes as possible for: every candidate whose server IP is located there gets tested
+PRIORITY_COUNTRIES = {c.strip().upper() for c in ENV("PRIORITY_COUNTRIES", "PH,IN,TR,AR,KZ").split(",") if c.strip()}
+PRIORITY_MAX = int(ENV("PRIORITY_MAX", "4000"))
+GEOIP_DB = ENV("GEOIP_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "Country.mmdb"))
 
 
 def read_sources(paths: list[str]) -> list[tuple[str, str]]:
@@ -86,7 +90,7 @@ def fetch_all(sources: list[tuple[str, str]]) -> tuple[list[dict], list[dict], l
     for kind, val in sources:
         try:
             if kind == "vpngate":
-                got = extra.vpngate(val, VPNGATE_LIMIT)
+                got = extra.vpngate(val, VPNGATE_LIMIT, PRIORITY_COUNTRIES)
                 print(f"  {len(got):6d}  {val} (OpenVPN)")
                 ovpn += got
             elif kind == "ovpn":
@@ -100,15 +104,67 @@ def fetch_all(sources: list[tuple[str, str]]) -> tuple[list[dict], list[dict], l
     return list(proxies.values()), ovpn, warp
 
 
+def _server_host(n: dict) -> str:
+    c = n["config"]
+    return c["peers"][0]["address"] if n["kind"] == "endpoint" else c["server"]
+
+
+def geo_hint(nodes: list[dict]) -> None:
+    """Resolve server names and look up their country (a hint: CDN-fronted nodes may exit elsewhere)."""
+    try:
+        import maxminddb
+        reader = maxminddb.open_database(GEOIP_DB)
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! GeoIP database unavailable ({e}); country priority disabled")
+        return
+    hosts = sorted({_server_host(n) for n in nodes})
+
+    async def resolve_all():
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(256))
+        sem = asyncio.Semaphore(512)
+
+        async def one(h):
+            async with sem:
+                try:
+                    infos = await asyncio.wait_for(loop.getaddrinfo(h, None), 5)
+                    return h, infos[0][4][0]
+                except Exception:  # noqa: BLE001
+                    return h, None
+        return dict(await asyncio.gather(*(one(h) for h in hosts)))
+
+    addr = asyncio.run(resolve_all())
+    for n in nodes:
+        ip = addr.get(_server_host(n))
+        cc = None
+        if ip:
+            try:
+                rec = reader.get(ip) or {}
+                cc = (rec.get("country") or rec.get("registered_country") or {}).get("iso_code")
+            except ValueError:
+                pass
+        n["geo_hint"] = cc
+    counts = Counter(n["geo_hint"] for n in nodes if n["geo_hint"] in PRIORITY_COUNTRIES)
+    print("  priority candidates by server location: " +
+          (", ".join(f"{k} {v}" for k, v in counts.most_common()) or "none"))
+
+
 def cap_per_protocol(nodes: list[dict]) -> list[dict]:
+    """Test every candidate in a priority country, then a random sample of the rest."""
+    priority = [n for n in nodes if n.get("geo_hint") in PRIORITY_COUNTRIES]
+    random.shuffle(priority)
+    priority = priority[:PRIORITY_MAX]
+    chosen = {id(n) for n in priority}
     by = defaultdict(list)
     for n in nodes:
-        by[n["protocol"]].append(n)
-    out = []
+        if id(n) not in chosen:
+            by[n["protocol"]].append(n)
+    out = list(priority)
     for proto, items in by.items():
         random.shuffle(items)
         out += items[:MAX_PER_PROTOCOL]
-        print(f"  {proto:10s} {len(items):6d} unique -> testing {min(len(items), MAX_PER_PROTOCOL)}")
+        print(f"  {proto:10s} {len(items):6d} others -> testing {min(len(items), MAX_PER_PROTOCOL)}")
+    print(f"  priority countries ({','.join(sorted(PRIORITY_COUNTRIES))}): testing {len(priority)}")
     return out
 
 
@@ -266,6 +322,8 @@ def main() -> None:
     stats = {"unique": len(proxies) + len(ovpn) + len(warp)}
     print(f"== {len(proxies)} unique proxy nodes, {len(ovpn)} OpenVPN, {len(warp)} WARP")
 
+    print("== locate servers")
+    geo_hint(proxies)
     proxies = cap_per_protocol(proxies)
     print("== validate config")
     proxies = singbox.validate(proxies) + singbox.validate(warp)
