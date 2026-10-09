@@ -1,0 +1,58 @@
+name: Update nodes
+
+# Every hour: fetch public node lists, test every node with real cores,
+# group the working ones by exit country and publish them to the "nodes" branch.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["collector/**", ".github/workflows/update-nodes.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-nodes
+  cancel-in-progress: false
+
+env:
+  SING_BOX_VERSION: "1.13.21"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sing-box, OpenVPN and Python packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openvpn
+          curl -fsSL -o /tmp/sb.tgz \
+            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+          tar xzf /tmp/sb.tgz -C /tmp
+          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          python -m pip install -q -r collector/requirements.txt
+
+      - name: Collect and test nodes
+        # root is needed to open TUN devices for the OpenVPN handshake test
+        run: |
+          sudo -E env "PATH=$PATH" python collector/collect.py --out out
+          sudo chown -R "$(id -u):$(id -g)" out
+
+      - name: Publish to the nodes branch
+        run: |
+          cd out
+          git init -q -b nodes
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "nodes $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" nodes

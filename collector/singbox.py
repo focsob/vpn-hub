@@ -1,0 +1,155 @@
+"""Validate and test nodes with a real sing-box core."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import socket
+import subprocess
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+SING_BOX = os.environ.get("SING_BOX", "sing-box")
+TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+_ERR_INDEX = re.compile(r"(outbound|endpoint)s?\[(\d+)\]")
+
+
+def _base_config() -> dict:
+    return {
+        "log": {"level": "error"},
+        "dns": {"servers": [{"type": "local", "tag": "local"}]},
+        "route": {"default_domain_resolver": "local", "final": "direct", "rules": []},
+    }
+
+
+def _build(nodes: list[dict], base_port: int | None = None) -> tuple[dict, list[int], list[int]]:
+    """Build a config; returns (config, outbound_index->node, endpoint_index->node)."""
+    cfg = _base_config()
+    outbounds, endpoints, inbounds = [], [], []
+    ob_map, ep_map = [], []
+    for i, n in enumerate(nodes):
+        item = dict(n["config"], tag=f"n{i}")
+        if n["kind"] == "endpoint":
+            ep_map.append(i)
+            endpoints.append(item)
+        else:
+            ob_map.append(i)
+            outbounds.append(item)
+        if base_port is not None:
+            inbounds.append({"type": "mixed", "tag": f"in{i}", "listen": "127.0.0.1", "listen_port": base_port + i})
+            cfg["route"]["rules"].append({"inbound": [f"in{i}"], "outbound": f"n{i}"})
+    outbounds.append({"type": "direct", "tag": "direct"})
+    cfg["outbounds"] = outbounds
+    if endpoints:
+        cfg["endpoints"] = endpoints
+    if inbounds:
+        cfg["inbounds"] = inbounds
+    return cfg, ob_map, ep_map
+
+
+def _check(nodes: list[dict]) -> tuple[bool, str]:
+    cfg, _, _ = _build(nodes)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(cfg, f)
+        path = f.name
+    try:
+        r = subprocess.run([SING_BOX, "check", "-c", path], capture_output=True, text=True, timeout=120)
+        return r.returncode == 0, r.stderr + r.stdout
+    finally:
+        os.unlink(path)
+
+
+def validate(nodes: list[dict], batch: int = 400) -> list[dict]:
+    """Drop every node that sing-box refuses to load."""
+    good: list[dict] = []
+    for start in range(0, len(nodes), batch):
+        pending = nodes[start:start + batch]
+        stack = [pending]
+        while stack:
+            group = stack.pop()
+            if not group:
+                continue
+            ok, err = _check(group)
+            if ok:
+                good.extend(group)
+                continue
+            if len(group) == 1:
+                continue
+            m = _ERR_INDEX.search(err)
+            if m:
+                _, ob_map, ep_map = _build(group)
+                idx = int(m.group(2))
+                table = ob_map if m.group(1) == "outbound" else ep_map
+                if idx < len(table):
+                    bad = table[idx]
+                    stack.append(group[:bad] + group[bad + 1:])
+                    continue
+            mid = len(group) // 2
+            stack.extend([group[:mid], group[mid:]])
+    return good
+
+
+def _wait_port(port: int, timeout: float = 15) -> bool:
+    end = time.time() + timeout
+    while time.time() < end:
+        with socket.socket() as s:
+            s.settimeout(0.3)
+            if s.connect_ex(("127.0.0.1", port)) == 0:
+                return True
+        time.sleep(0.3)
+    return False
+
+
+def _curl(port: int, timeout: int) -> dict | None:
+    try:
+        r = subprocess.run(
+            ["curl", "-sS", "--max-time", str(timeout), "-x", f"socks5h://127.0.0.1:{port}",
+             "-o", "-", "-w", "\n__TIME=%{time_total}", TRACE_URL],
+            capture_output=True, text=True, timeout=timeout + 5)
+    except subprocess.TimeoutExpired:
+        return None
+    if r.returncode != 0 or "loc=" not in r.stdout:
+        return None
+    info = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+    try:
+        latency = int(float(info.get("__TIME", "0")) * 1000)
+    except ValueError:
+        latency = 0
+    return {"country": info.get("loc", "ZZ").upper(), "exit_ip": info.get("ip", ""), "latency": latency}
+
+
+def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: int = 10,
+         base_port: int = 20000) -> list[dict]:
+    """Return nodes that can fetch the Cloudflare trace page, annotated with country/latency."""
+    alive: list[dict] = []
+    for start in range(0, len(nodes), batch):
+        group = nodes[start:start + batch]
+        cfg, _, _ = _build(group, base_port)
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(cfg, f)
+            path = f.name
+        log = tempfile.TemporaryFile("w+")
+        proc = subprocess.Popen([SING_BOX, "run", "-c", path], stdout=subprocess.DEVNULL, stderr=log, text=True)
+        try:
+            if not _wait_port(base_port + len(group) - 1):
+                log.seek(0)
+                err = log.read(2000)
+                print(f"  ! sing-box failed to start batch {start}: {err.strip()[:300]}", flush=True)
+                continue
+            with ThreadPoolExecutor(concurrency) as pool:
+                results = list(pool.map(lambda i: _curl(base_port + i, timeout), range(len(group))))
+            for node, res in zip(group, results):
+                if res:
+                    alive.append({**node, **res})
+            print(f"  batch {start // batch + 1}: {sum(1 for r in results if r)}/{len(group)} alive", flush=True)
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            log.close()
+            os.unlink(path)
+    return alive

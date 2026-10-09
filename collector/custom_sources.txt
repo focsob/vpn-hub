@@ -1,0 +1,4 @@
+# 喺呢度加你自己嘅訂閱網址，一行一個（格式同 sources.txt）。
+# 例如：
+# https://example.com/my-subscription
+# ovpn https://example.com/my-server.ovpn
