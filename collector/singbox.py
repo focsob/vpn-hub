@@ -121,12 +121,14 @@ def _curl(port: int, timeout: int) -> dict | None:
 
 
 def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: int = 10,
-         base_port: int = 20000) -> list[dict]:
+         base_port: int = 20000, log_file: str | None = None) -> list[dict]:
     """Return nodes that can fetch the Cloudflare trace page, annotated with country/latency."""
     alive: list[dict] = []
     for start in range(0, len(nodes), batch):
         group = nodes[start:start + batch]
         cfg, _, _ = _build(group, base_port)
+        if log_file:
+            cfg["log"] = {"level": "debug"}
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump(cfg, f)
             path = f.name
@@ -150,6 +152,11 @@ def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: i
                 proc.wait(10)
             except subprocess.TimeoutExpired:
                 proc.kill()
+            if log_file:
+                log.seek(0)
+                lines = log.read().splitlines()
+                with open(log_file, "a") as out:
+                    out.write("\n".join(lines[:400] + ["..."] + lines[-200:]) + "\n")
             log.close()
             os.unlink(path)
     return alive
