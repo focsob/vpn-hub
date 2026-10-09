@@ -2,6 +2,14 @@
 
 每次 App 有改動，最頂嗰段會自動顯示喺 GitHub Releases 嗰個版本度。
 
+## 2026-10-10 · 支援更多協定
+
+- 新增 9 種協定：Shadowsocks、Hysteria（第一代）、TUIC、AnyTLS、NaiveProxy、Snell、SSH、SOCKS5、HTTP。連同原有 6 種，合共 15 種。
+- 支援 Clash／Clash.Meta YAML 格式嘅訂閱，以及純 IP:端口 嘅 SOCKS5／HTTP 代理清單。
+- 新增 Clash 訂閱、TUIC、Shadowsocks 同公開 SOCKS5／HTTP 代理等來源。
+- 協定篩選按鈕加入新協定；之後再加新協定都會自動顯示。
+- 注意：SOCKS5 同 HTTP 公開代理本身冇加密，營運者睇得到未加密內容。
+
 ## 2026-10-10 · OpenVPN（VPN Gate）喺 App 內直接連線
 
 - OpenVPN 節點而家喺 App 入面直接連線，唔再需要另外安裝「OpenVPN for Android」。

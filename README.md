@@ -1,6 +1,6 @@
 # VPN Hub
 
-Android 16 或以上嘅 Virtual Private Network（VPN）App。每小時自動搜集網上公開嘅 VLESS、VMess、Trojan、Hysteria2、WireGuard、OpenVPN 節點，用真實核心逐個測試，移除唔通嘅，再按出口國家分類。
+Android 16 或以上嘅 Virtual Private Network（VPN）App。每小時自動搜集網上公開嘅 VLESS、VMess、Trojan、Shadowsocks、Hysteria2、Hysteria、TUIC、AnyTLS、WireGuard、OpenVPN、NaiveProxy、Snell、SSH、SOCKS5、HTTP 節點，用真實核心逐個測試，移除唔通嘅，再按出口國家分類。
 
 ## 點樣運作
 
@@ -17,7 +17,8 @@ GitHub Actions（每小時）                         你部手機
 ```
 
 - 國家係按「出口 Internet Protocol（IP）地址」判斷，即係網站見到你喺邊，唔係節點伺服器登記喺邊。
-- VLESS／VMess／Trojan／Hysteria2／WireGuard 由 App 內置嘅 sing-box 核心直接連線。
+- 全部協定由 App 內置嘅 sing-box 核心直接連線。來源可以係分享連結、Clash／Clash.Meta YAML，或者純 IP:端口 嘅 SOCKS5／HTTP 清單。
+- ShadowsocksR 同 VPN Gate 嘅 SSTP／L2TP 唔支援，因為 sing-box 冇呢啲協定。
 - OpenVPN（主要來自 VPN Gate）：由 sing-box 1.14 內置嘅 OpenVPN 引擎喺 App 內直接連線，唔使另裝其他 App。
 - WireGuard：公開清單幾乎冇 WireGuard 節點，所以自動註冊 Cloudflare WARP（顯示為「Cloudflare WARP」，出口係就近嘅 Cloudflare 機房）。
 
@@ -82,6 +83,8 @@ Residential 同 ISP 嘅分界係靠反查域名推斷，唔係百分之百準確
 ```
 https://example.com/my-subscription        # 訂閱網址（純文字或 base64）
 ovpn https://example.com/server.ovpn       # 單一 OpenVPN 檔
+socks5 https://example.com/socks5.txt      # 每行一個 IP:端口 嘅 SOCKS5 清單
+http https://example.com/http.txt          # 每行一個 IP:端口 嘅 HTTP 代理清單
 ```
 
 儲存後會自動重新測試。

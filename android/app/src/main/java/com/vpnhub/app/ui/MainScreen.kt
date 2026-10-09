@@ -103,7 +103,7 @@ fun MainScreen(
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showSettings by remember { mutableStateOf(false) }
 
-    val visible = list?.nodes.orEmpty().filter { it.protocol in protocols && IpTypes.matches(it, ipTypes) }
+    val visible = list?.nodes.orEmpty().filter { Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
     val byCountry = visible.groupBy { it.country }.entries.sortedWith(
         compareBy<Map.Entry<String, List<Node>>> { it.key == "WARP" || it.key == "ZZ" }
             .thenByDescending { it.value.size },

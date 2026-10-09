@@ -16,8 +16,11 @@ import re
 import uuid
 from urllib.parse import parse_qsl, unquote, urlsplit
 
-SCHEMES = ("vless", "vmess", "trojan", "hysteria2", "hy2", "wireguard", "wg")
-_SPLIT = re.compile(r"(?=(?:%s)://)" % "|".join(SCHEMES), re.I)
+SCHEMES = ("vless", "vmess", "trojan", "hysteria2", "hy2", "hysteria", "tuic", "anytls", "wireguard", "wg",
+           "naive+https", "naive+quic", "socks5", "socks", "ssh", "ss")
+# "ss://" is also the tail of "vmess://" and "vless://", so it only starts a link when not preceded by those
+_SPLIT = re.compile(r"(?=(?:%s)://)|(?<![vV][mM][eE])(?<![vV][lL][eE])(?=[sS][sS]://)" % "|".join(
+    re.escape(x) for x in SCHEMES if x != "ss"), re.I)
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 _HEX = re.compile(r"^[0-9a-fA-F]*$")
 _WG_KEY = re.compile(r"^[A-Za-z0-9+/]{42,43}=?$")
@@ -389,10 +392,247 @@ def parse_wireguard(link: str) -> dict | None:
     return {"protocol": "wireguard", "kind": "endpoint", "config": cfg, "link": link}
 
 
+# --------------------------------------------------------------------------- more protocols
+
+SS_METHODS = {
+    "aes-128-gcm", "aes-192-gcm", "aes-256-gcm", "chacha20-ietf-poly1305", "xchacha20-ietf-poly1305",
+    "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305", "none",
+    "aes-128-ctr", "aes-192-ctr", "aes-256-ctr", "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+    "rc4-md5", "chacha20-ietf", "xchacha20",
+}
+
+
+def _ss_plugin(raw: str) -> tuple[str, str] | None | bool:
+    """Map a SIP003 plugin string to sing-box plugin/plugin_opts. False = unsupported."""
+    if not raw:
+        return None
+    name, _, opts = unquote(raw).partition(";")
+    name = name.strip()
+    if name in ("obfs-local", "simple-obfs"):
+        return "obfs-local", opts
+    if name == "v2ray-plugin":
+        return "v2ray-plugin", opts
+    return False
+
+
+def parse_ss(link: str) -> dict | None:
+    node = _parse_ss(link)
+    if node:
+        return node
+    # mislabelled links: a VMess JSON or a VLESS uuid behind "ss://"
+    rest = link[len("ss://"):]
+    if _UUID.match(rest.split("@", 1)[0]):
+        return parse_vless("vless://" + rest)
+    try:
+        if b64decode_loose(rest.split("#", 1)[0]).lstrip().startswith(b"{"):
+            return parse_vmess("vmess://" + rest)
+    except (binascii.Error, ValueError):
+        pass
+    return None
+
+
+def _parse_ss(link: str) -> dict | None:
+    body = link[len("ss://"):]
+    body, _, _frag = body.partition("#")
+    body, _, query = body.partition("?")
+    body = body.rstrip("/")
+    q = {k.lower(): v for k, v in parse_qsl(query, keep_blank_values=True)}
+    if "@" in body:
+        userinfo, _, hostport = body.rpartition("@")
+        userinfo = unquote(userinfo)
+        if ":" not in userinfo:
+            try:
+                userinfo = b64decode_loose(userinfo).decode("utf-8", "ignore")
+            except (binascii.Error, ValueError):
+                return None
+    else:  # legacy: base64(method:password@host:port)
+        try:
+            decoded = b64decode_loose(body).decode("utf-8", "ignore")
+        except (binascii.Error, ValueError):
+            return None
+        if "@" not in decoded:
+            return None
+        userinfo, _, hostport = decoded.rpartition("@")
+    method, _, password = userinfo.partition(":")
+    method = method.strip().lower()
+    method = {"chacha20-poly1305": "chacha20-ietf-poly1305", "xchacha20-poly1305": "xchacha20-ietf-poly1305"}.get(
+        method, method)
+    if method not in SS_METHODS or not password:
+        return None
+    m = re.match(r"^\[?([^\]]+?)\]?:(\d+)$", hostport.strip().rstrip("/?"))
+    if not m:
+        return None
+    server, port = _host(m.group(1)), _port(m.group(2))
+    if not (server and port):
+        return None
+    cfg = {"type": "shadowsocks", "server": server, "server_port": port, "method": method, "password": password}
+    plugin = _ss_plugin(q.get("plugin", ""))
+    if plugin is False:
+        return None
+    if plugin:
+        cfg["plugin"], cfg["plugin_opts"] = plugin
+    return {"protocol": "shadowsocks", "kind": "outbound", "config": cfg, "link": link}
+
+
+def _simple_tls(q: dict, server: str, default_alpn: list[str] | None = None) -> dict:
+    sni = _first(q.get("sni") or q.get("peer") or q.get("servername"))
+    tls: dict = {"enabled": True}
+    if sni or not _is_ip(server):
+        tls["server_name"] = sni or server
+    if any(_truthy(q.get(k)) for k in ("insecure", "allowinsecure", "allow_insecure", "skip-cert-verify")):
+        tls["insecure"] = True
+    alpn = [a.strip() for a in (q.get("alpn") or "").split(",") if a.strip()] or (default_alpn or [])
+    if alpn:
+        tls["alpn"] = alpn
+    return tls
+
+
+def parse_tuic(link: str) -> dict | None:
+    p = _split_url(link)
+    if not p:
+        return None
+    user, host, port, q, _ = p
+    server, port = _host(host), _port(port)
+    try:
+        u = urlsplit(link)
+        uid, pw = unquote(u.username or ""), unquote(u.password or "")
+    except ValueError:
+        return None
+    if not (server and port and _UUID.match(uid) and pw):
+        return None
+    cfg = {"type": "tuic", "server": server, "server_port": port, "uuid": uid.lower(), "password": pw,
+           "tls": _simple_tls(q, server, ["h3"])}
+    cc = (q.get("congestion_control") or q.get("congestion-control") or "").lower()
+    if cc in ("cubic", "new_reno", "bbr"):
+        cfg["congestion_control"] = cc
+    mode = (q.get("udp_relay_mode") or q.get("udp-relay-mode") or "").lower()
+    if mode in ("native", "quic"):
+        cfg["udp_relay_mode"] = mode
+    return {"protocol": "tuic", "kind": "outbound", "config": cfg, "link": link}
+
+
+def parse_hysteria(link: str) -> dict | None:
+    p = _split_url(link)
+    if not p:
+        return None
+    _, host, port, q, _ = p
+    server, port = _host(host), _port(port)
+    if not (server and port):
+        return None
+    if (q.get("protocol") or "udp").lower() != "udp":
+        return None  # faketcp / wechat-video need raw sockets
+    def mbps(key, default):
+        try:
+            return max(1, int(re.sub(r"[^0-9]", "", q.get(key, "")) or default))
+        except ValueError:
+            return default
+    cfg = {"type": "hysteria", "server": server, "server_port": port,
+           "up_mbps": mbps("upmbps", 20), "down_mbps": mbps("downmbps", 100),
+           "tls": _simple_tls(q, server, ["hysteria"])}
+    auth = q.get("auth") or q.get("auth_str") or ""
+    if auth:
+        cfg["auth_str"] = auth
+    obfs = q.get("obfsparam") or q.get("obfs-password") or ""
+    if obfs and (q.get("obfs") or "xplus") in ("xplus", ""):
+        cfg["obfs"] = obfs
+    return {"protocol": "hysteria", "kind": "outbound", "config": cfg, "link": link}
+
+
+def parse_anytls(link: str) -> dict | None:
+    p = _split_url(link)
+    if not p:
+        return None
+    user, host, port, q, _ = p
+    server, port = _host(host), _port(port)
+    if not (server and port and user):
+        return None
+    cfg = {"type": "anytls", "server": server, "server_port": port, "password": user,
+           "tls": _simple_tls(q, server)}
+    return {"protocol": "anytls", "kind": "outbound", "config": cfg, "link": link}
+
+
+def parse_naive(link: str) -> dict | None:
+    quic = link.lower().startswith("naive+quic://")
+    p = _split_url("https://" + link.split("://", 1)[1])
+    if not p:
+        return None
+    _, host, port, q, _ = p
+    server, port = _host(host), _port(port) or 443
+    try:
+        u = urlsplit("https://" + link.split("://", 1)[1])
+        user, pw = unquote(u.username or ""), unquote(u.password or "")
+    except ValueError:
+        return None
+    if not (server and user):
+        return None
+    cfg = {"type": "naive", "server": server, "server_port": port, "username": user, "password": pw,
+           "tls": _simple_tls(q, server)}
+    if quic:
+        cfg["quic"] = True
+    return {"protocol": "naive", "kind": "outbound", "config": cfg, "link": link}
+
+
+def _plain_proxy(link: str, kind: str) -> dict | None:
+    try:
+        u = urlsplit(link)
+        host, port = u.hostname, u.port
+        user, pw = unquote(u.username or ""), unquote(u.password or "")
+    except ValueError:
+        return None
+    if u.path not in ("", "/") or u.query:
+        return None
+    server, port = _host(host), _port(port)
+    if not (server and port):
+        return None
+    if user.lower() == "none":
+        user = ""
+    if pw.lower() == "none":
+        pw = ""
+    if kind == "socks":
+        cfg = {"type": "socks", "server": server, "server_port": port, "version": "5"}
+    else:
+        cfg = {"type": "http", "server": server, "server_port": port}
+        if u.scheme.lower() == "https":
+            cfg["tls"] = {"enabled": True, "insecure": True}
+    if user:
+        cfg["username"] = user
+    if pw:
+        cfg["password"] = pw
+    return {"protocol": kind, "kind": "outbound", "config": cfg, "link": link}
+
+
+def parse_socks(link: str) -> dict | None:
+    return _plain_proxy(link, "socks")
+
+
+def parse_http_proxy(link: str) -> dict | None:
+    return _plain_proxy(link, "http")
+
+
+def parse_ssh(link: str) -> dict | None:
+    p = _split_url(link)
+    if not p:
+        return None
+    _, host, port, q, _ = p
+    server, port = _host(host), _port(port) or 22
+    try:
+        u = urlsplit(link)
+        user, pw = unquote(u.username or ""), unquote(u.password or "")
+    except ValueError:
+        return None
+    if not (server and user and pw):
+        return None
+    cfg = {"type": "ssh", "server": server, "server_port": port, "user": user, "password": pw}
+    return {"protocol": "ssh", "kind": "outbound", "config": cfg, "link": link}
+
+
 PARSERS = {
     "vless": parse_vless, "vmess": parse_vmess, "trojan": parse_trojan,
     "hysteria2": parse_hysteria2, "hy2": parse_hysteria2,
     "wireguard": parse_wireguard, "wg": parse_wireguard,
+    "ss": parse_ss, "tuic": parse_tuic, "hysteria": parse_hysteria, "anytls": parse_anytls,
+    "naive+https": parse_naive, "naive+quic": parse_naive, "socks5": parse_socks, "socks": parse_socks,
+    "ssh": parse_ssh, "http": parse_http_proxy, "https": parse_http_proxy,
 }
 
 

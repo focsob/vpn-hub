@@ -16,7 +16,8 @@ object Prefs {
     private val _selection = MutableStateFlow(Selection.decode(sp.getString("selection", null)))
     val selection: StateFlow<Selection> = _selection
 
-    private val _protocols = MutableStateFlow(sp.getStringSet("protocols", null)?.toSet() ?: Protocols.all.toSet())
+    // Stored as the switched-off set, so protocols added in later versions start switched on
+    private val _protocols = MutableStateFlow(Protocols.all.toSet() - (sp.getStringSet("protocols_off", null) ?: emptySet()))
 
     /** Protocols the user wants to see / use. */
     val protocols: StateFlow<Set<String>> = _protocols
@@ -72,6 +73,6 @@ object Prefs {
     fun setProtocols(set: Set<String>) {
         val v = set.ifEmpty { Protocols.all.toSet() }
         _protocols.value = v
-        sp.edit().putStringSet("protocols", v).apply()
+        sp.edit().putStringSet("protocols_off", Protocols.all.toSet() - v).apply()
     }
 }

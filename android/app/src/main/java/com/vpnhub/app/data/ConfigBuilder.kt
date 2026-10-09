@@ -31,7 +31,7 @@ object ConfigBuilder {
         groupSize: Int,
     ): Plan? {
         val usable = list?.nodes.orEmpty()
-            .filter { it.config != null && it.protocol in protocols && IpTypes.matches(it, ipTypes) }
+            .filter { it.config != null && Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
             .sortedBy { if (it.latency <= 0) Int.MAX_VALUE else it.latency }
         if (usable.isEmpty()) return null
         return when (selection) {

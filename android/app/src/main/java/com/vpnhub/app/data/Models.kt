@@ -68,7 +68,13 @@ sealed class Selection {
 }
 
 object Protocols {
-    val all = listOf("vless", "vmess", "trojan", "hysteria2", "wireguard", "openvpn")
+    val all = listOf(
+        "vless", "vmess", "trojan", "shadowsocks", "hysteria2", "hysteria", "tuic", "anytls",
+        "wireguard", "openvpn", "naive", "snell", "ssh", "socks", "http",
+    )
+
+    /** New protocols the app does not know yet are always shown. */
+    fun matches(node: Node, enabled: Set<String>): Boolean = node.protocol !in all || node.protocol in enabled
 
     fun label(p: String) = when (p) {
         "vless" -> "VLESS"
@@ -77,6 +83,15 @@ object Protocols {
         "hysteria2" -> "Hysteria2"
         "wireguard" -> "WireGuard"
         "openvpn" -> "OpenVPN"
+        "shadowsocks" -> "Shadowsocks"
+        "hysteria" -> "Hysteria"
+        "tuic" -> "TUIC"
+        "anytls" -> "AnyTLS"
+        "naive" -> "NaiveProxy"
+        "snell" -> "Snell"
+        "ssh" -> "SSH"
+        "socks" -> "SOCKS5"
+        "http" -> "HTTP"
         else -> p
     }
 }

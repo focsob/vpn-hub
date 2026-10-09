@@ -25,6 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import clash  # noqa: E402
 import extra  # noqa: E402
 import iptype  # noqa: E402
 import singbox  # noqa: E402
@@ -37,7 +38,7 @@ PER_EXIT_IP = int(ENV("PER_EXIT_IP", "3"))
 VPNGATE_LIMIT = int(ENV("VPNGATE_LIMIT", "1000"))  # VPN Gate: test every server the API lists
 TEST_TIMEOUT = int(ENV("TEST_TIMEOUT", "10"))
 TEST_CONCURRENCY = int(ENV("TEST_CONCURRENCY", "128"))
-TCP_PROTOCOLS = {"vless", "vmess", "trojan"}
+TCP_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "anytls", "naive", "socks", "http", "snell", "ssh"}
 # Countries to collect as many nodes as possible for: every candidate whose server IP is located there gets tested
 PRIORITY_COUNTRIES = {c.strip().upper() for c in ENV("PRIORITY_COUNTRIES", "PH,IN,TR,AR,KZ").split(",") if c.strip()}
 PRIORITY_MAX = int(ENV("PRIORITY_MAX", "4000"))
@@ -54,36 +55,51 @@ def read_sources(paths: list[str]) -> list[tuple[str, str]]:
             if not line or line.startswith("#"):
                 continue
             parts = line.split()
-            if parts[0] in ("vpngate", "ovpn", "warp") and len(parts) >= 2:
+            if parts[0] in ("vpngate", "ovpn", "warp", "socks5", "http", "https") and len(parts) >= 2:
                 out.append((parts[0], parts[1]))
             elif parts[0].startswith(("http://", "https://", "file://")):
                 out.append(("sub", parts[0]))
     return list(dict.fromkeys(out))
 
 
-def fetch_all(sources: list[tuple[str, str]]) -> tuple[list[dict], list[dict], list[dict]]:
-    subs = [u for k, u in sources if k == "sub"]
+PLAIN_LISTS = {"socks5": "socks5", "http": "http", "https": "https"}
 
-    def get(url):
+
+def nodes_from_text(text: str, plain_scheme: str | None = None) -> list[dict]:
+    """Every node found in one fetched source: share links, Clash YAML, or a plain host:port list."""
+    if plain_scheme:
+        links = []
+        for line in text.splitlines():
+            line = line.strip().split()[0] if line.strip() else ""
+            if not line or line.startswith("#"):
+                continue
+            links.append(line if "://" in line else f"{plain_scheme}://{line}")
+        found = [parse_link(x) for x in links]
+        return [n for n in found if n]
+    found = [parse_link(x) for x in extract_links(text)]
+    return [n for n in found if n] + clash.nodes_from_yaml(text)
+
+
+def fetch_all(sources: list[tuple[str, str]]) -> tuple[list[dict], list[dict], list[dict]]:
+    jobs = [(u, None) for k, u in sources if k == "sub"] + \
+           [(u, PLAIN_LISTS[k]) for k, u in sources if k in PLAIN_LISTS]
+
+    def get(job):
+        url, scheme = job
         try:
-            return url, extract_links(extra.http_get(url))
+            return url, nodes_from_text(extra.http_get(url), scheme)
         except Exception as e:  # noqa: BLE001
             return url, e
 
-    links: list[str] = []
+    proxies: dict[str, dict] = {}
     with ThreadPoolExecutor(16) as pool:
-        for url, res in pool.map(get, subs):
+        for url, res in pool.map(get, jobs):
             if isinstance(res, Exception):
                 print(f"  ! {url}: {res}")
-            else:
-                print(f"  {len(res):6d}  {url}")
-                links.extend(res)
-
-    proxies: dict[str, dict] = {}
-    for link in links:
-        node = parse_link(link)
-        if node:
-            proxies.setdefault(node_key(node), node)
+                continue
+            print(f"  {len(res):6d}  {url}")
+            for node in res:
+                proxies.setdefault(node_key(node), node)
 
     ovpn: list[dict] = []
     warp: list[dict] = []
