@@ -66,7 +66,8 @@ def vpngate(url: str, limit: int) -> list[dict]:
         if "remote " not in ovpn:
             continue
         out.append({"protocol": "openvpn", "kind": "openvpn", "ovpn": _tidy_ovpn(ovpn),
-                    "country_hint": (row.get("CountryShort") or "ZZ").upper()[:2], "score": score})
+                    "country_hint": (row.get("CountryShort") or "ZZ").upper()[:2], "score": score,
+                    "exit_ip": (row.get("IP") or "").strip()})
     out.sort(key=lambda n: -n["score"])
     return out[:limit]
 

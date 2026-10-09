@@ -1,5 +1,6 @@
 package com.vpnhub.app.data
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -25,6 +26,7 @@ data class CountryInfo(
     val count: Int = 0,
     val best: Int = 0,
     val protocols: Map<String, Int> = emptyMap(),
+    @SerialName("ip_types") val ipTypes: Map<String, Int> = emptyMap(),
 )
 
 @Serializable
@@ -38,6 +40,8 @@ data class Node(
     val config: JsonObject? = null,
     val link: String? = null,
     val ovpn: String? = null,
+    @SerialName("ip_type") val ipType: String = "unknown",
+    val isp: String = "",
 ) {
     val isOpenVpn: Boolean get() = kind == "openvpn"
 }
@@ -76,6 +80,31 @@ object Protocols {
         "openvpn" -> "OpenVPN"
         else -> p
     }
+}
+
+/** Kind of network the exit IP belongs to. */
+object IpTypes {
+    val all = listOf("dc", "residential", "isp", "mobile")
+
+    fun label(t: String) = when (t) {
+        "dc" -> "Data Centre"
+        "residential" -> "Residential"
+        "isp" -> "ISP"
+        "mobile" -> "Mobile"
+        else -> "未知"
+    }
+
+    fun short(t: String) = when (t) {
+        "dc" -> "DC"
+        "residential" -> "住宅"
+        "isp" -> "ISP"
+        "mobile" -> "流動"
+        else -> "?"
+    }
+
+    /** Nodes with an unknown type are only shown while no IP type filter is active. */
+    fun matches(node: Node, selected: Set<String>): Boolean =
+        if (selected.containsAll(all)) true else node.ipType in selected
 }
 
 object Countries {

@@ -15,9 +15,15 @@ object ConfigBuilder {
 
     data class Plan(val nodes: List<Node>, val label: String)
 
-    fun plan(list: NodeList?, selection: Selection, protocols: Set<String>, groupSize: Int): Plan? {
+    fun plan(
+        list: NodeList?,
+        selection: Selection,
+        protocols: Set<String>,
+        ipTypes: Set<String>,
+        groupSize: Int,
+    ): Plan? {
         val usable = list?.nodes.orEmpty()
-            .filter { !it.isOpenVpn && it.config != null && it.protocol in protocols }
+            .filter { !it.isOpenVpn && it.config != null && it.protocol in protocols && IpTypes.matches(it, ipTypes) }
             .sortedBy { if (it.latency <= 0) Int.MAX_VALUE else it.latency }
         if (usable.isEmpty()) return null
         return when (selection) {

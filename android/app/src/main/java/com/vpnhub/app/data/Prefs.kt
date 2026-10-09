@@ -18,6 +18,11 @@ object Prefs {
     /** Protocols the user wants to see / use. */
     val protocols: StateFlow<Set<String>> = _protocols
 
+    private val _ipTypes = MutableStateFlow(sp.getStringSet("ip_types", null)?.toSet() ?: IpTypes.all.toSet())
+
+    /** Exit IP types (Data Centre / Residential / ISP / Mobile) the user wants. */
+    val ipTypes: StateFlow<Set<String>> = _ipTypes
+
     var nodesUrl: String
         get() = sp.getString("nodes_url", null)?.takeIf { it.isNotBlank() } ?: BuildConfig.NODES_URL
         set(v) = sp.edit().putString("nodes_url", v.trim()).apply()
@@ -39,6 +44,12 @@ object Prefs {
     fun select(s: Selection) {
         _selection.value = s
         sp.edit().putString("selection", s.encode()).apply()
+    }
+
+    fun setIpTypes(set: Set<String>) {
+        val v = set.ifEmpty { IpTypes.all.toSet() }
+        _ipTypes.value = v
+        sp.edit().putStringSet("ip_types", v).apply()
     }
 
     fun setProtocols(set: Set<String>) {

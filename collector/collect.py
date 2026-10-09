@@ -26,6 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import extra  # noqa: E402
+import iptype  # noqa: E402
 import singbox  # noqa: E402
 from parse import clean_link, extract_links, node_key, parse_link  # noqa: E402
 
@@ -166,6 +167,30 @@ def finalize(alive: list[dict]) -> list[dict]:
     return out
 
 
+def annotate_ip_types(nodes: list[dict]) -> None:
+    """Attach ip_type (dc / residential / isp / mobile) and ISP name based on the exit IP."""
+    print("== IP type")
+    for n in nodes:
+        if n.get("warp"):
+            n["ip_type"], n["isp"] = "dc", "Cloudflare WARP"
+        elif n["kind"] == "openvpn" and not n.get("exit_ip"):
+            remote = extra._remote(n["ovpn"])
+            if remote:
+                try:
+                    n["exit_ip"] = socket.gethostbyname(remote[0])
+                except OSError:
+                    pass
+    todo = [n["exit_ip"] for n in nodes if n.get("exit_ip") and "ip_type" not in n]
+    info = iptype.classify(todo)
+    for n in nodes:
+        if "ip_type" in n:
+            continue
+        got = info.get(n.get("exit_ip", ""), {})
+        n["ip_type"] = got.get("ip_type", "unknown")
+        n["isp"] = got.get("isp", "")
+    print("   " + ", ".join(f"{k} {v}" for k, v in Counter(n["ip_type"] for n in nodes).most_common()))
+
+
 def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
     os.makedirs(os.path.join(out_dir, "sub"), exist_ok=True)
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
@@ -185,6 +210,8 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
             "country": cc,
             "latency": n.get("latency", 0),
             "kind": n["kind"],
+            "ip_type": n.get("ip_type", "unknown"),
+            "isp": n.get("isp", ""),
         }
         if n["kind"] == "openvpn":
             rec["ovpn"] = n["ovpn"]
@@ -197,7 +224,8 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
     for r in records:
         by_cc[r["country"]].append(r)
     countries = {cc: {"count": len(v), "best": min(x["latency"] for x in v),
-                      "protocols": dict(Counter(x["protocol"] for x in v))} for cc, v in by_cc.items()}
+                      "protocols": dict(Counter(x["protocol"] for x in v)),
+                      "ip_types": dict(Counter(x["ip_type"] for x in v))} for cc, v in by_cc.items()}
     data = {"version": 1, "updated": now.isoformat().replace("+00:00", "Z"), "count": len(records),
             "countries": dict(sorted(countries.items(), key=lambda kv: -kv[1]["count"])),
             "stats": stats, "nodes": records}
@@ -216,11 +244,12 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
     open(os.path.join(out_dir, "sub", "all.txt"), "w").write(b64(all_links))
 
     rows = "\n".join(f"| {cc} | {v['count']} | {v['best']} ms | "
-                     f"{', '.join(f'{p} {c}' for p, c in v['protocols'].items())} |"
+                     f"{', '.join(f'{p} {c}' for p, c in v['protocols'].items())} | "
+                     f"{', '.join(f'{p} {c}' for p, c in v['ip_types'].items())} |"
                      for cc, v in data["countries"].items())
     open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8").write(
         f"# Nodes\n\nUpdated: {data['updated']} · Working: {len(records)}\n\n"
-        f"| Country | Nodes | Best | Protocols |\n|---|---|---|---|\n{rows}\n")
+        f"| Country | Nodes | Best | Protocols | IP type |\n|---|---|---|---|---|\n{rows}\n")
 
 
 def main() -> None:
@@ -258,7 +287,9 @@ def main() -> None:
     print(f"   {len(alive_ovpn)} working")
 
     final = finalize(alive) + sorted(alive_ovpn, key=lambda n: n["latency"])
+    annotate_ip_types(final)
     stats["working"] = len(final)
+    stats["by_ip_type"] = dict(Counter(n.get("ip_type", "unknown") for n in final))
     stats["by_protocol"] = dict(Counter(n["protocol"] for n in final))
     if not final:
         sys.exit("no working nodes; keeping the previous list")

@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vpnhub.app.data.Countries
+import com.vpnhub.app.data.IpTypes
 import com.vpnhub.app.data.Node
 import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
@@ -72,6 +73,15 @@ private fun latencyColor(ms: Int): Color = when {
     else -> Color(0xFFC62828)
 }
 
+@Composable
+private fun ipTypeColor(t: String): Color = when (t) {
+    "residential" -> Color(0xFF2E7D32)
+    "mobile" -> Color(0xFF1565C0)
+    "isp" -> Color(0xFF6A1B9A)
+    "dc" -> MaterialTheme.colorScheme.onSurfaceVariant
+    else -> MaterialTheme.colorScheme.outline
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -90,12 +100,13 @@ fun MainScreen(
     val vpnError by VpnState.error.collectAsStateWithLifecycle()
     val selection by Prefs.selection.collectAsStateWithLifecycle()
     val protocols by Prefs.protocols.collectAsStateWithLifecycle()
+    val ipTypes by Prefs.ipTypes.collectAsStateWithLifecycle()
     val ovpnStatus by OpenVpnBridge.status.collectAsStateWithLifecycle()
 
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showSettings by remember { mutableStateOf(false) }
 
-    val visible = list?.nodes.orEmpty().filter { it.protocol in protocols }
+    val visible = list?.nodes.orEmpty().filter { it.protocol in protocols && IpTypes.matches(it, ipTypes) }
     val byCountry = visible.groupBy { it.country }.entries.sortedWith(
         compareBy<Map.Entry<String, List<Node>>> { it.key == "WARP" || it.key == "ZZ" }
             .thenByDescending { it.value.size },
@@ -163,6 +174,25 @@ fun MainScreen(
                                 onSelectionChanged()
                             },
                             label = { Text(Protocols.label(p)) },
+                        )
+                    }
+                }
+            }
+            item {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("IP 類型", style = MaterialTheme.typography.labelMedium)
+                    IpTypes.all.forEach { t ->
+                        FilterChip(
+                            selected = t in ipTypes,
+                            onClick = {
+                                Prefs.setIpTypes(if (t in ipTypes) ipTypes - t else ipTypes + t)
+                                onSelectionChanged()
+                            },
+                            label = { Text(IpTypes.label(t)) },
                         )
                     }
                 }
@@ -310,6 +340,9 @@ private fun CountryRow(
     val protoSummary = nodes.groupingBy { it.protocol }.eachCount().entries
         .sortedByDescending { it.value }
         .joinToString(" · ") { "${Protocols.label(it.key)} ${it.value}" }
+    val typeSummary = nodes.groupingBy { it.ipType }.eachCount().entries
+        .sortedByDescending { it.value }
+        .joinToString(" · ") { "${IpTypes.short(it.key)} ${it.value}" }
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -324,6 +357,7 @@ private fun CountryRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(protoSummary, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(typeSummary, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (selected) Text("✓ ", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         if (best > 0) Text("$best ms", color = latencyColor(best), style = MaterialTheme.typography.bodySmall)
@@ -342,12 +376,20 @@ private fun NodeRow(node: Node, selected: Boolean, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 56.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            node.name,
-            Modifier.weight(1f),
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                node.name,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                IpTypes.label(node.ipType) + if (node.isp.isNotBlank()) " · ${node.isp}" else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = ipTypeColor(node.ipType),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         AssistChip(onClick = onClick, label = { Text(Protocols.label(node.protocol)) })
         Spacer(Modifier.width(8.dp))
         Text(

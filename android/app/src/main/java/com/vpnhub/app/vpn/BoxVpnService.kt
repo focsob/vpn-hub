@@ -98,6 +98,7 @@ class BoxVpnService : VpnService(), PlatformInterface, CommandServerHandler {
             NodeRepository.list.value,
             Prefs.selection.value,
             Prefs.protocols.value,
+            Prefs.ipTypes.value,
             Prefs.groupSize,
         ) ?: return null
         return ConfigBuilder.build(plan) to plan.label
