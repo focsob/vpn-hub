@@ -89,3 +89,7 @@ http https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt
 https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Cambodia.txt
 https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Bhutan.txt
 https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Macao%20SAR%20China.txt
+
+# 主力搜集菲律賓（PH）節點
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Philippines.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Philippines.txt

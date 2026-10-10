@@ -20,6 +20,7 @@ concurrency:
 env:
   # 盡量多搵呢幾個國家嘅節點（ISO 國家代碼，逗號分隔）
   PRIORITY_COUNTRIES: "PH,IN,TR,AR,KZ,KH,BT,MO"
+  FOCUS_WARP: "PH"   # 主力測試菲律賓節點可唔可以做 WARP 出口
   # 測試分開幾多部雲端機同時做（要同下面 matrix 嘅數目一致）
   SHARDS: "12"
   # private WARP account pool for chain tests: kept in the Actions cache, never published

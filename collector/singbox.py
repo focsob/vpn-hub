@@ -210,7 +210,7 @@ def _curl_trace(port: int, timeout: int) -> dict | None:
 
 
 def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 10,
-                    base_port: int = 46000, budget: int = 150) -> list[tuple[dict, str, int]]:
+                    base_port: int = 46000, budget: int = 150, focus: set | None = None) -> list[tuple[dict, str, int]]:
     """phone -> node -> Cloudflare WARP. Returns (node, WARP exit country, latency ms) for chains that work.
 
     Each node in a batch gets its own WARP account: one WireGuard key used from two places at once
@@ -220,9 +220,12 @@ def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 10,
         return []
     out = []
     width = len(accounts)
-    deadline = time.time() + budget  # hard time limit so the 10-minute schedule is kept
+    if focus:  # test focus-country nodes first so the time budget never skips them
+        nodes = sorted(nodes, key=lambda n: n.get("country") not in focus)
+    deadline = time.time() + budget  # hard time limit so the hourly schedule is kept
     for start in range(0, len(nodes), width):
-        if time.time() + timeout + 5 > deadline:
+        # focus nodes bypass the time budget; others stop when the budget runs out
+        if time.time() + timeout + 5 > deadline and not any(n.get("country") in focus for n in nodes[start:start + width] if focus):
             print(f"  chain test time budget reached after {start} nodes", flush=True)
             break
         group = nodes[start:start + width]

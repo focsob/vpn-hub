@@ -47,6 +47,8 @@ SHARDS = int(ENV("SHARDS", "12"))
 CHAIN_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "hysteria2", "hysteria", "tuic", "anytls",
                    "naive", "socks", "wireguard", "openvpn"}
 CHAIN_PER_ACCOUNT = int(ENV("CHAIN_PER_ACCOUNT", "6"))  # chains tested per WARP account per run
+# countries whose nodes get their WARP chain tested first and in full (for finding WARP exits there)
+FOCUS_WARP = {c.strip().upper() for c in ENV("FOCUS_WARP", "PH").split(",") if c.strip()}
 CHAIN_BUDGET = int(ENV("CHAIN_BUDGET", "150"))  # seconds per shard
 GEOIP_DB = ENV("GEOIP_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "Country.mmdb"))
 
@@ -387,14 +389,18 @@ def phase_test(work: str, shard: str) -> None:
         by_cc[n["country"]].append(n)
     order = sorted(by_cc, key=lambda cc: (cc not in PRIORITY_COUNTRIES, -len(by_cc[cc])))
     limit = CHAIN_PER_ACCOUNT * len(accounts)
+    # test EVERY focus-country node (e.g. Philippines) for WARP first, no cap — WARP exits there are the goal
     picked: list[dict] = []
-    while len(picked) < limit and any(by_cc.values()):
-        for cc in order:
-            if by_cc[cc] and len(picked) < limit:
+    for cc in FOCUS_WARP:
+        picked += by_cc.pop(cc, [])
+    rest_order = [cc for cc in order if cc in by_cc]
+    while len(picked) < limit and any(by_cc.get(c) for c in rest_order):
+        for cc in rest_order:
+            if by_cc.get(cc) and len(picked) < limit:
                 picked.append(by_cc[cc].pop(0))
     if accounts and picked:
         print(f"== WARP chain test: {len(picked)} nodes with {len(accounts)} WARP accounts")
-        chains = singbox.test_warp_chain(picked, accounts, budget=CHAIN_BUDGET)
+        chains = singbox.test_warp_chain(picked, accounts, budget=CHAIN_BUDGET, focus=FOCUS_WARP)
         for node, cc, ms in chains:
             node["warp_cc"], node["warp_ms"] = cc, ms
         print(f"   {len(chains)} can carry WARP: " +
