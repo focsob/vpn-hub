@@ -1,7 +1,10 @@
 package com.vpnhub.app.data
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -23,6 +26,7 @@ object NodeRepository {
     val lastError: StateFlow<String?> = _lastError
 
     private val lock = Mutex()
+    private val bg = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var cacheFile: File
 
     /** Time (ms) the cached list was downloaded. */
@@ -58,6 +62,9 @@ object NodeRepository {
                 tmp.renameTo(cacheFile)
                 _list.value = parsed
                 _lastError.value = null
+                // check from THIS phone which nodes actually answer, and drop the dead ones
+                LocalPing.clear()
+                bg.launch { LocalPing.prune(parsed.nodes) }
                 Result.success(parsed)
             } catch (e: Exception) {
                 _lastError.value = "更新失敗：${e.message}"

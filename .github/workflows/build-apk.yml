@@ -4,13 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["android/**", "RELEASE_NOTES.md", ".github/workflows/build-apk.yml", ".github/scripts/**"]
+    paths: ["android/**", "RELEASE_NOTES.md", "SINGBOX_VERSION", ".github/workflows/build-apk.yml", ".github/scripts/**"]
 
 permissions:
   contents: write
-
-env:
-  SING_BOX_VERSION: "v1.14.3"
 
 jobs:
   build:
@@ -21,12 +18,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read sing-box version
+        id: sbver
+        run: echo "v=$(cat SINGBOX_VERSION)" >> "$GITHUB_OUTPUT"
+
       - name: Restore sing-box core
         id: libbox
         uses: actions/cache@v4
         with:
           path: android/app/libs/libbox.aar
-          key: libbox-${{ env.SING_BOX_VERSION }}-android-arm64-v1
+          key: libbox-${{ steps.sbver.outputs.v }}-android-arm64-v1
 
       - uses: actions/setup-java@v4
         with:
@@ -50,7 +51,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
         run: |
-          git clone -q --depth 1 --branch "$SING_BOX_VERSION" https://github.com/SagerNet/sing-box.git /tmp/sing-box
+          git clone -q --depth 1 --branch "v${{ steps.sbver.outputs.v }}" https://github.com/SagerNet/sing-box.git /tmp/sing-box
           cd /tmp/sing-box
           make lib_install
           export PATH="$PATH:$(go env GOPATH)/bin"

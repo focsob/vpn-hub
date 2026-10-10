@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vpnhub.app.data.Countries
 import com.vpnhub.app.data.IpTypes
+import com.vpnhub.app.data.LocalPing
 import com.vpnhub.app.data.Node
 import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
@@ -113,7 +114,10 @@ fun MainScreen(
     var showSettings by remember { mutableStateOf(false) }
 
     val warpMode by Prefs.warpMode.collectAsStateWithLifecycle()
-    val filtered = list?.nodes.orEmpty().filter { Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
+    val dead by LocalPing.dead.collectAsStateWithLifecycle()
+    val pinging by LocalPing.checking.collectAsStateWithLifecycle()
+    val filtered = list?.nodes.orEmpty()
+        .filter { it.id !in dead && Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
     // WARP mode lists the nodes that can carry WARP, grouped by the country WARP then exits in
     val visible = if (warpMode) filtered.filter { it.warpCc != null } else filtered
     val byCountry = visible.groupBy { if (warpMode) it.warpCc!! else it.country }.entries.sortedWith(
@@ -165,6 +169,16 @@ fun MainScreen(
                     onConnect = onConnect,
                     onDisconnect = onDisconnect,
                 )
+            }
+            if (pinging || dead.isNotEmpty()) {
+                item {
+                    Text(
+                        if (pinging) "本機測試節點連通性中…" else "本機測試後移除咗 ${dead.size} 個連唔到嘅節點",
+                        Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             item {
                 val active = splitRules.filter { it.enabled && it.packages.isNotEmpty() }

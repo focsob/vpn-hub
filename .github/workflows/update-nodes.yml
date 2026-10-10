@@ -18,7 +18,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SING_BOX_VERSION: "1.14.3"
   # 盡量多搵呢幾個國家嘅節點（ISO 國家代碼，逗號分隔）
   PRIORITY_COUNTRIES: "PH,IN,TR,AR,KZ"
   # 測試分開幾多部雲端機同時做（要同下面 matrix 嘅數目一致）
@@ -42,10 +41,11 @@ jobs:
 
       - name: Install sing-box and Python packages
         run: |
+          V="$(cat SINGBOX_VERSION)"
           curl -fsSL -o /tmp/sb.tgz \
-            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+            "https://github.com/SagerNet/sing-box/releases/download/v${V}/sing-box-${V}-linux-amd64.tar.gz"
           tar xzf /tmp/sb.tgz -C /tmp
-          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          sudo install "/tmp/sing-box-${V}-linux-amd64/sing-box" /usr/local/bin/sing-box
           python -m pip install -q -r collector/requirements.txt
           curl -fsSL -o collector/Country.mmdb \
             https://github.com/Loyalsoldier/geoip/releases/latest/download/Country.mmdb
@@ -99,10 +99,11 @@ jobs:
 
       - name: Install sing-box and Python packages
         run: |
+          V="$(cat SINGBOX_VERSION)"
           curl -fsSL -o /tmp/sb.tgz \
-            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+            "https://github.com/SagerNet/sing-box/releases/download/v${V}/sing-box-${V}-linux-amd64.tar.gz"
           tar xzf /tmp/sb.tgz -C /tmp
-          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          sudo install "/tmp/sing-box-${V}-linux-amd64/sing-box" /usr/local/bin/sing-box
           python -m pip install -q -r collector/requirements.txt
 
       - uses: actions/download-artifact@v4
@@ -146,10 +147,11 @@ jobs:
 
       - name: Install sing-box and Python packages
         run: |
+          V="$(cat SINGBOX_VERSION)"
           curl -fsSL -o /tmp/sb.tgz \
-            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+            "https://github.com/SagerNet/sing-box/releases/download/v${V}/sing-box-${V}-linux-amd64.tar.gz"
           tar xzf /tmp/sb.tgz -C /tmp
-          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          sudo install "/tmp/sing-box-${V}-linux-amd64/sing-box" /usr/local/bin/sing-box
           python -m pip install -q -r collector/requirements.txt
 
       - uses: actions/download-artifact@v4

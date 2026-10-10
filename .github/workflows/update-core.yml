@@ -1,0 +1,39 @@
+name: Update sing-box core
+
+# Once a day: if SagerNet/sing-box has a newer STABLE release, bump SINGBOX_VERSION.
+# The commit then triggers Build APK (it rebuilds the core) and the next node run uses it.
+on:
+  schedule:
+    - cron: "40 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for a newer stable sing-box
+        run: |
+          set -e
+          current="$(cat SINGBOX_VERSION)"
+          # newest non-prerelease release tag (skip alpha/beta/rc)
+          latest="$(curl -fsSL -H 'Accept: application/vnd.github+json' \
+            https://api.github.com/repos/SagerNet/sing-box/releases \
+            | python3 -c "import json,sys,re; rs=json.load(sys.stdin); \
+                print(next((r['tag_name'].lstrip('v') for r in rs if not r['prerelease'] and not r['draft'] \
+                and re.fullmatch(r'[0-9.]+', r['tag_name'].lstrip('v'))), ''))")"
+          echo "current=$current latest=$latest"
+          if [ -z "$latest" ] || [ "$latest" = "$current" ]; then
+            echo "No update."
+            exit 0
+          fi
+          echo "$latest" > SINGBOX_VERSION
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "core: update sing-box to $latest"
+          git push

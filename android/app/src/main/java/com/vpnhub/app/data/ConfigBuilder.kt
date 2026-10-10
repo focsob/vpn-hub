@@ -34,9 +34,12 @@ object ConfigBuilder {
         data class Proxy(val port: Int, val allowLan: Boolean) : Inbound()
     }
 
-    private fun usableNodes(list: NodeList?, protocols: Set<String>, ipTypes: Set<String>) = list?.nodes.orEmpty()
-        .filter { it.config != null && Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
-        .sortedBy { if (it.latency <= 0) Int.MAX_VALUE else it.latency }
+    private fun usableNodes(list: NodeList?, protocols: Set<String>, ipTypes: Set<String>): List<Node> {
+        val dead = LocalPing.dead.value // dropped: this phone could not reach them after the last update
+        return list?.nodes.orEmpty()
+            .filter { it.config != null && it.id !in dead && Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
+            .sortedBy { if (it.latency <= 0) Int.MAX_VALUE else it.latency }
+    }
 
     fun plan(
         list: NodeList?,
