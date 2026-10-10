@@ -52,6 +52,11 @@ object Prefs {
         sp.edit().putBoolean("warp_mode", on).apply()
     }
 
+    /** Cloudflare WARP UDP port. Some networks reset 2408 but allow 500 / 4500 / 1701. */
+    var warpPort: Int
+        get() = sp.getInt("warp_port", 2408)
+        set(v) = sp.edit().putInt("warp_port", v).apply()
+
     /** This device's own WARP account. */
     var warpAccount: WarpAccount?
         get() = sp.getString("warp_account", null)?.let {

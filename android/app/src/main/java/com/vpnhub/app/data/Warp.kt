@@ -104,7 +104,7 @@ object Warp {
         putJsonArray("peers") {
             addJsonObject {
                 put("address", ENDPOINT)
-                put("port", 2408)
+                put("port", Prefs.warpPort)
                 put("public_key", acct.peerPublicKey)
                 putJsonArray("allowed_ips") {
                     add("0.0.0.0/0")

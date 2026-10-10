@@ -41,6 +41,7 @@ fun SettingsDialog(
     var mode by remember { mutableStateOf(Prefs.mode) }
     var port by remember { mutableStateOf(Prefs.proxyPort.toString()) }
     var allowLan by remember { mutableStateOf(Prefs.proxyAllowLan) }
+    var warpPort by remember { mutableStateOf(Prefs.warpPort) }
     val portValue = port.toIntOrNull()
     val portValid = portValue != null && portValue in 1024..65535
 
@@ -73,6 +74,22 @@ fun SettingsDialog(
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
+                Text("Cloudflare WARP 連接埠（UDP）", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    "WARP 連唔到時試吓換端口。部分網絡會截 2408，但放行 500／4500／1701。",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    val ports = listOf(2408, 500, 4500, 1701)
+                    ports.forEachIndexed { i, pnum ->
+                        SegmentedButton(
+                            selected = warpPort == pnum,
+                            onClick = { warpPort = pnum },
+                            shape = SegmentedButtonDefaults.itemShape(i, ports.size),
+                        ) { Text("$pnum") }
+                    }
+                }
+                HorizontalDivider()
                 if (mode == Prefs.MODE_PROXY) {
                     OutlinedTextField(
                         value = port,
@@ -136,8 +153,10 @@ fun SettingsDialog(
                     Prefs.mode = mode
                     if (portValid) Prefs.proxyPort = portValue!!
                     Prefs.proxyAllowLan = allowLan
+                    val warpChanged = warpPort != Prefs.warpPort
+                    Prefs.warpPort = warpPort
                     onDismiss()
-                    onSaved(modeChanged, urlChanged)
+                    onSaved(modeChanged || warpChanged, urlChanged)
                 },
             ) { Text("儲存") }
         },
