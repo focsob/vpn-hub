@@ -15,10 +15,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -32,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -112,6 +115,7 @@ fun MainScreen(
 
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showSettings by remember { mutableStateOf(false) }
+    var countryQuery by rememberSaveable { mutableStateOf("") }
 
     val warpMode by Prefs.warpMode.collectAsStateWithLifecycle()
     val dead by LocalPing.dead.collectAsStateWithLifecycle()
@@ -124,6 +128,7 @@ fun MainScreen(
         compareBy<Map.Entry<String, List<Node>>> { it.key == "WARP" || it.key == "ZZ" }
             .thenByDescending { it.value.size },
     )
+    val shownCountries = byCountry.filter { Countries.matches(it.key, countryQuery) }
 
     fun select(s: Selection) {
         Prefs.select(s)
@@ -133,7 +138,7 @@ fun MainScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("VPN Hub") },
+                title = { Text("Fatbo VPNhub") },
                 actions = {
                     if (refreshing) {
                         CircularProgressIndicator(Modifier.padding(12.dp).width(24.dp), strokeWidth = 2.dp)
@@ -284,7 +289,37 @@ fun MainScreen(
                     )
                 }
             }
-            byCountry.forEach { (cc, nodes) ->
+            if (byCountry.isNotEmpty()) {
+                item {
+                    OutlinedTextField(
+                        value = countryQuery,
+                        onValueChange = { countryQuery = it },
+                        label = { Text("搜尋國家 / 地區") },
+                        placeholder = { Text("例如 菲律賓、PH、Japan") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (countryQuery.isNotEmpty()) {
+                                IconButton(onClick = { countryQuery = "" }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "清除")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                }
+                if (shownCountries.isEmpty()) {
+                    item {
+                        Text(
+                            "搵唔到符合「$countryQuery」嘅國家／地區",
+                            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            shownCountries.forEach { (cc, nodes) ->
                 val sorted = nodes.sortedBy { if (it.latency <= 0) Int.MAX_VALUE else it.latency }
                 val isOpen = cc in expanded
                 item(key = "c-$cc") {

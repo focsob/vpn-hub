@@ -135,6 +135,20 @@ object Countries {
             .getOrNull()?.ifBlank { null } ?: code
     }
 
+    private fun nameEn(code: String): String =
+        runCatching { Locale.Builder().setRegion(code).build().getDisplayCountry(Locale.ENGLISH) }
+            .getOrNull()?.ifBlank { null } ?: code
+
+    /** True if [query] matches the country code, its Chinese name, or its English name (case-insensitive). */
+    fun matches(code: String, query: String): Boolean {
+        val q = query.trim()
+        if (q.isEmpty()) return true
+        val lq = q.lowercase()
+        return code.lowercase().contains(lq) ||
+            name(code).lowercase().contains(lq) ||
+            nameEn(code).lowercase().contains(lq)
+    }
+
     fun flag(code: String): String {
         if (code == "WARP") return "☁️"
         if (code.length != 2 || !code.all { it in 'A'..'Z' } || code == "ZZ" || code == "XX" || code == "T1") return "🌐"
