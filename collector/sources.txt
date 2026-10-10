@@ -60,3 +60,27 @@ socks5 https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RA
 http https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
 http https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt
 http https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt
+
+# 更多大型合集（2026-10-10 加入）
+https://raw.githubusercontent.com/10ium/V2ray-Config/main/All_Configs_Sub.txt
+https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/all_configs.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/ShadowSocks.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Vmess.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Vless.txt
+https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Trojan.txt
+https://raw.githubusercontent.com/Danialsamadi/v2go/main/AllConfigsSub.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/Best-Results/sub.txt
+https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/Best-Results/clash.yaml
+https://raw.githubusercontent.com/Firmfox/Proxify/main/v2ray_configs/separated_by_protocol/mixed.txt
+https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt
+https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/shadowsocks.txt
+https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/vless.txt
+https://raw.githubusercontent.com/ShatakVPN/ConfigForge-V2Ray/main/configs/all.txt
+https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_SS
+https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_Vmess
+https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_Reality
+https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_T%2CH
+socks5 https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt
+socks5 https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt
+http https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt
+http https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt

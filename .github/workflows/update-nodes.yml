@@ -21,11 +21,15 @@ env:
   SING_BOX_VERSION: "1.14.3"
   # 盡量多搵呢幾個國家嘅節點（ISO 國家代碼，逗號分隔）
   PRIORITY_COUNTRIES: "PH,IN,TR,AR,KZ"
+  # 測試分開幾多部雲端機同時做（要同下面 matrix 嘅數目一致）
+  SHARDS: "12"
+  WARP_CACHE: work/warp_cache.json
 
 jobs:
-  update:
+  # 1) fetch every source, de-duplicate, drop unreachable servers, split into shards
+  prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -45,13 +49,93 @@ jobs:
 
       - name: Reuse WARP accounts from the previous run
         run: |
-          git fetch -q --depth 1 origin nodes 2>/dev/null && git show origin/nodes:warp.json > warp_cache.json 2>/dev/null || rm -f warp_cache.json
+          mkdir -p work
+          git fetch -q --depth 1 origin nodes 2>/dev/null && git show origin/nodes:warp.json > "$WARP_CACHE" 2>/dev/null || rm -f "$WARP_CACHE"
 
-      - name: Collect and test nodes
+      - name: Fetch and prepare
         run: |
           set -o pipefail
-          mkdir -p logs
-          python -u collector/collect.py --out out 2>&1 | tee logs/update-nodes.log
+          python -u collector/collect.py prepare --work work 2>&1 | tee work/log-prepare.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: work
+          path: work
+          retention-days: 1
+
+  # 2) test the shards in parallel on separate machines
+  test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "ovpn"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sing-box and Python packages
+        run: |
+          curl -fsSL -o /tmp/sb.tgz \
+            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+          tar xzf /tmp/sb.tgz -C /tmp
+          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          python -m pip install -q -r collector/requirements.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: work
+          path: work
+
+      - name: Test shard ${{ matrix.shard }}
+        run: |
+          set -o pipefail
+          mkdir -p result
+          python -u collector/collect.py test --work work --shard "${{ matrix.shard }}" 2>&1 | tee result/log-${{ matrix.shard }}.txt
+          mv work/alive-${{ matrix.shard }}.json result/
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alive-${{ matrix.shard }}
+          path: result
+          retention-days: 1
+
+  # 3) merge, classify IP types and publish to the nodes branch
+  publish:
+    needs: test
+    if: always() && needs.test.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sing-box and Python packages
+        run: |
+          curl -fsSL -o /tmp/sb.tgz \
+            "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz"
+          tar xzf /tmp/sb.tgz -C /tmp
+          sudo install "/tmp/sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          python -m pip install -q -r collector/requirements.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: work
+          merge-multiple: true
+
+      - name: Merge and classify
+        run: |
+          set -o pipefail
+          python -u collector/collect.py publish --work work --out out 2>&1 | tee work/log-publish.txt
 
       - name: Publish to the nodes branch
         run: |
@@ -63,10 +147,12 @@ jobs:
           git commit -qm "nodes $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" nodes
 
-      - name: Upload run log to the logs branch
+      - name: Upload run logs to the logs branch
         if: always()
         run: |
-          mkdir -p logs && cd logs
+          mkdir -p logs
+          { cat work/log-prepare.txt; for f in $(ls work/log-*.txt | grep -v -e prepare -e publish | sort -V); do echo "---- $f"; cat "$f"; done; cat work/log-publish.txt; } > logs/update-nodes.log 2>/dev/null || true
+          cd logs
           git init -q -b logs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

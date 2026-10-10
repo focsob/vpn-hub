@@ -32,8 +32,8 @@ import singbox  # noqa: E402
 from parse import clean_link, extract_links, node_key, parse_link  # noqa: E402
 
 ENV = os.environ.get
-MAX_PER_PROTOCOL = int(ENV("MAX_PER_PROTOCOL", "2500"))
-PER_COUNTRY = int(ENV("PER_COUNTRY", "150"))
+MAX_PER_PROTOCOL = int(ENV("MAX_PER_PROTOCOL", "1000000"))  # no sampling: test everything reachable
+PER_COUNTRY = int(ENV("PER_COUNTRY", "1000"))
 PER_EXIT_IP = int(ENV("PER_EXIT_IP", "3"))
 VPNGATE_LIMIT = int(ENV("VPNGATE_LIMIT", "1000"))  # VPN Gate: test every server the API lists
 TEST_TIMEOUT = int(ENV("TEST_TIMEOUT", "10"))
@@ -41,7 +41,8 @@ TEST_CONCURRENCY = int(ENV("TEST_CONCURRENCY", "128"))
 TCP_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "anytls", "naive", "socks", "http", "snell", "ssh"}
 # Countries to collect as many nodes as possible for: every candidate whose server IP is located there gets tested
 PRIORITY_COUNTRIES = {c.strip().upper() for c in ENV("PRIORITY_COUNTRIES", "PH,IN,TR,AR,KZ").split(",") if c.strip()}
-PRIORITY_MAX = int(ENV("PRIORITY_MAX", "4000"))
+PRIORITY_MAX = int(ENV("PRIORITY_MAX", "1000000"))
+SHARDS = int(ENV("SHARDS", "12"))
 GEOIP_DB = ENV("GEOIP_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "Country.mmdb"))
 
 
@@ -191,7 +192,7 @@ def cap_per_protocol(nodes: list[dict]) -> list[dict]:
 async def _tcp_ok(host: str, port: int, sem: asyncio.Semaphore) -> bool:
     async with sem:
         try:
-            _, w = await asyncio.wait_for(asyncio.open_connection(host, port), 4)
+            _, w = await asyncio.wait_for(asyncio.open_connection(host, port), 3)
             w.close()
             return True
         except Exception:  # noqa: BLE001
@@ -210,7 +211,7 @@ async def _dns_ok(host: str, sem: asyncio.Semaphore) -> bool:
 def prefilter(nodes: list[dict]) -> list[dict]:
     """Cheap reachability check so the expensive proxy test only sees plausible servers."""
     async def run():
-        sem = asyncio.Semaphore(400)
+        sem = asyncio.Semaphore(int(ENV("PREFILTER_CONCURRENCY", "1500")))
         tasks = []
         for n in nodes:
             c = n["config"]
@@ -316,58 +317,102 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
         f"| Country | Nodes | Best | Protocols | IP type |\n|---|---|---|---|---|\n{rows}\n")
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    here = os.path.dirname(os.path.abspath(__file__))
-    ap.add_argument("--sources", nargs="*", default=[os.path.join(here, "sources.txt"),
-                                                      os.path.join(here, "custom_sources.txt")])
-    ap.add_argument("--out", default="out")
-    args = ap.parse_args()
-    random.seed()
+def _dump(obj, path: str) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
 
+
+def _load(path: str):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def phase_prepare(sources: list[str], work: str, shards: int) -> None:
+    """Fetch + parse + de-duplicate + reachability check, then split the work into shards."""
+    os.makedirs(work, exist_ok=True)
     print("== fetch")
-    proxies, ovpn, warp = fetch_all(read_sources(args.sources))
+    proxies, ovpn, warp = fetch_all(read_sources(sources))
     stats = {"unique": len(proxies) + len(ovpn) + len(warp)}
     print(f"== {len(proxies)} unique proxy nodes, {len(ovpn)} OpenVPN, {len(warp)} WARP")
-
     print("== locate servers")
     geo_hint(proxies)
     proxies = cap_per_protocol(proxies)
-    print("== validate config")
-    proxies = singbox.validate(proxies) + singbox.validate(warp)
-    ovpn = singbox.validate(ovpn)
-    print(f"   {len(proxies)} proxy + {len(ovpn)} OpenVPN accepted by sing-box")
     print("== reachability prefilter")
-    proxies = prefilter(proxies)
+    proxies = prefilter(proxies) + warp
     print(f"   {len(proxies)} reachable")
     stats["tested"] = len(proxies) + len(ovpn)
+    random.shuffle(proxies)  # spread slow / dead-heavy sources evenly across shards
+    for i in range(shards):
+        _dump(proxies[i::shards], os.path.join(work, f"shard-{i}.json"))
+    _dump(ovpn, os.path.join(work, "shard-ovpn.json"))
+    _dump(stats, os.path.join(work, "stats.json"))
+    print(f"== {shards} proxy shards of ~{len(proxies) // max(shards, 1)} + 1 OpenVPN shard of {len(ovpn)}")
 
-    print("== proxy test (sing-box)")
-    alive = singbox.test(proxies, concurrency=TEST_CONCURRENCY, timeout=TEST_TIMEOUT)
+
+def phase_test(work: str, shard: str) -> None:
+    """Validate and really test one shard with sing-box."""
+    nodes = _load(os.path.join(work, f"shard-{shard}.json"))
+    print(f"== shard {shard}: {len(nodes)} nodes")
+    nodes = singbox.validate(nodes)
+    print(f"   {len(nodes)} accepted by sing-box")
+    if shard == "ovpn":
+        # OpenVPN handshakes are slower: smaller batches, warm-up and a retry
+        alive = singbox.test(nodes, batch=100, concurrency=50, timeout=20, base_port=40000, warmup=20, retries=2)
+    else:
+        alive = singbox.test(nodes, concurrency=TEST_CONCURRENCY, timeout=TEST_TIMEOUT)
     for n in alive:
         if n.get("warp"):
             n["country"] = "WARP"
     print(f"   {len(alive)} working")
+    _dump(alive, os.path.join(work, f"alive-{shard}.json"))
 
-    # OpenVPN handshakes are slower, so they get their own batches and a longer timeout
-    print("== OpenVPN test (sing-box openvpn-client)")
-    os.makedirs("logs", exist_ok=True)
-    alive_ovpn = singbox.test(ovpn, batch=100, concurrency=50, timeout=20, base_port=40000, warmup=20, retries=2,
-                              log_file="logs/openvpn-debug.log" if ENV("DEBUG_OPENVPN") else None)
-    print(f"   {len(alive_ovpn)} working")
 
-    final = finalize(alive + alive_ovpn)
+def phase_publish(work: str, out: str) -> None:
+    """Merge shard results, classify IP types and write the published files."""
+    import glob
+    alive: list[dict] = []
+    for path in sorted(glob.glob(os.path.join(work, "**", "alive-*.json"), recursive=True)):
+        part = _load(path)
+        print(f"  {len(part):6d}  {os.path.basename(path)}")
+        alive += part
+    stats_files = glob.glob(os.path.join(work, "**", "stats.json"), recursive=True)
+    stats = _load(stats_files[0]) if stats_files else {}
+    final = finalize(alive)
     annotate_ip_types(final)
     stats["working"] = len(final)
     stats["by_ip_type"] = dict(Counter(n.get("ip_type", "unknown") for n in final))
     stats["by_protocol"] = dict(Counter(n["protocol"] for n in final))
     if not final:
         sys.exit("no working nodes; keeping the previous list")
-    write_output(final, args.out, stats)
+    write_output(final, out, stats)
     if os.path.exists(extra.WARP_CACHE):  # carried to the next run through the nodes branch
         import shutil
-        shutil.copy(extra.WARP_CACHE, os.path.join(args.out, "warp.json"))
-    print(f"== wrote {len(final)} nodes in {len({n['country'] for n in final})} countries -> {args.out}")
+        shutil.copy(extra.WARP_CACHE, os.path.join(out, "warp.json"))
+    print(f"== wrote {len(final)} nodes in {len({n['country'] for n in final})} countries -> {out}")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    here = os.path.dirname(os.path.abspath(__file__))
+    ap.add_argument("phase", nargs="?", default="all", choices=["all", "prepare", "test", "publish"])
+    ap.add_argument("--sources", nargs="*", default=[os.path.join(here, "sources.txt"),
+                                                      os.path.join(here, "custom_sources.txt")])
+    ap.add_argument("--work", default="work")
+    ap.add_argument("--shard", default="0")
+    ap.add_argument("--shards", type=int, default=SHARDS)
+    ap.add_argument("--out", default="out")
+    args = ap.parse_args()
+    random.seed()
+
+    if args.phase in ("all", "prepare"):
+        phase_prepare(args.sources, args.work, 1 if args.phase == "all" else args.shards)
+    if args.phase == "all":
+        phase_test(args.work, "0")
+        phase_test(args.work, "ovpn")
+    elif args.phase == "test":
+        phase_test(args.work, args.shard)
+    if args.phase in ("all", "publish"):
+        phase_publish(args.work, args.out)
 
 
 if __name__ == "__main__":
