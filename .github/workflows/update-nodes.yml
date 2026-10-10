@@ -4,7 +4,8 @@ name: Update nodes
 # group the working ones by exit country and publish them to the "nodes" branch.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "3,13,23,33,43,53 * * * *"   # ~每 10 分鐘，避開每個鐘正點（GitHub 正點會丟排程）
+    - cron: "7 * * * *"                  # 保底：每個鐘最少一定行一次
   workflow_dispatch:
   push:
     branches: [main]
