@@ -132,7 +132,12 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         } else {
             null
         }
-        return ConfigBuilder.build(plan, inbound, warpAccount) to plan.label
+        val debug = ConfigBuilder.Debug(
+            logPath = Diagnostics.logFile.path,
+            verbose = Prefs.verboseLog,
+            diagPort = Diagnostics.port(),
+        )
+        return ConfigBuilder.build(plan, inbound, warpAccount, debug) to plan.label
     }
 
     private fun overrideOptions() = OverrideOptions().apply {
@@ -160,6 +165,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         VpnState._mode.value = if (proxyMode) Prefs.MODE_PROXY else Prefs.MODE_VPN
         try {
             if (NodeRepository.list.value == null) NodeRepository.refresh()
+            Diagnostics.resetLog()
             val (config, label) = currentConfig()
                 ?: error(noNodeMessage())
             DefaultNetworkMonitor.start()

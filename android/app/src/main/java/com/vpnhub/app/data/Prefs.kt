@@ -59,6 +59,11 @@ object Prefs {
         }
         set(v) = sp.edit().putString("warp_account", v?.let { json.encodeToString(WarpAccount.serializer(), it) }).apply()
 
+    /** Debug-level connection log (for troubleshooting). */
+    var verboseLog: Boolean
+        get() = sp.getBoolean("verbose_log", false)
+        set(v) = sp.edit().putBoolean("verbose_log", v).apply()
+
     /** Release tag the user chose to skip in the update prompt. */
     var skippedUpdate: String
         get() = sp.getString("skipped_update", "") ?: ""

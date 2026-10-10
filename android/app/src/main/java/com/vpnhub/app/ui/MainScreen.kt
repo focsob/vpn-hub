@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -103,6 +104,7 @@ fun MainScreen(
     val speed by SpeedMeter.speed.collectAsStateWithLifecycle()
     val splitRules by Prefs.splitRules.collectAsStateWithLifecycle()
     var showSplit by remember { mutableStateOf(false) }
+    var showDiag by remember { mutableStateOf(false) }
     val selection by Prefs.selection.collectAsStateWithLifecycle()
     val protocols by Prefs.protocols.collectAsStateWithLifecycle()
     val ipTypes by Prefs.ipTypes.collectAsStateWithLifecycle()
@@ -133,6 +135,9 @@ fun MainScreen(
                         CircularProgressIndicator(Modifier.padding(12.dp).width(24.dp), strokeWidth = 2.dp)
                     } else {
                         IconButton(onClick = onRefresh) { Icon(Icons.Filled.Refresh, contentDescription = "更新節點") }
+                    }
+                    IconButton(onClick = { showDiag = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "連線診斷")
                     }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Filled.Settings, contentDescription = "設定")
@@ -290,6 +295,10 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    if (showDiag) {
+        DiagDialog(onDismiss = { showDiag = false }, onVerboseChanged = onSelectionChanged)
     }
 
     if (showSplit) {

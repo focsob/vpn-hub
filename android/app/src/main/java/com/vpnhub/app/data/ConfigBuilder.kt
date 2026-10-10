@@ -134,7 +134,15 @@ object ConfigBuilder {
         }
     }
 
-    fun build(plan: Plan, inbound: Inbound = Inbound.Tun, warpAccount: WarpAccount? = null): String {
+    /** Logging and the local test port used by the in-app diagnostics. */
+    data class Debug(val logPath: String? = null, val verbose: Boolean = false, val diagPort: Int = 0)
+
+    fun build(
+        plan: Plan,
+        inbound: Inbound = Inbound.Tun,
+        warpAccount: WarpAccount? = null,
+        debug: Debug = Debug(),
+    ): String {
         val outbounds = mutableListOf<JsonObject>()
         val endpoints = mutableListOf<JsonObject>()
         // each node is defined once even when several groups use it
@@ -168,7 +176,9 @@ object ConfigBuilder {
         val finalTag = if (plan.warp) {
             requireNotNull(warpAccount) { "WARP account missing" }
             val detour = if (plan.nodes.isEmpty()) {
-                null
+                // straight from the phone, but through the "direct" outbound: the same proven socket path as
+                // the node chain, instead of sing-box 1.14's per-interface WireGuard sockets
+                "direct"
             } else {
                 // checked every minute: when the node in use dies, the group moves to another node of the
                 // same WARP country and sing-box re-dials WARP's WireGuard session through it
@@ -199,7 +209,11 @@ object ConfigBuilder {
         }
 
         val root = buildJsonObject {
-            putJsonObject("log") { put("level", "warn") }
+            putJsonObject("log") {
+                put("level", if (debug.verbose) "debug" else "info")
+                put("timestamp", true)
+                debug.logPath?.let { put("output", it) }
+            }
             putJsonObject("dns") {
                 putJsonArray("servers") {
                     addJsonObject {
@@ -217,6 +231,15 @@ object ConfigBuilder {
                 put("strategy", "prefer_ipv4")
             }
             putJsonArray("inbounds") {
+                if (debug.diagPort > 0) {
+                    // local-only port the diagnostics screen uses to test the live connection
+                    addJsonObject {
+                        put("type", "mixed")
+                        put("tag", "diag-in")
+                        put("listen", "127.0.0.1")
+                        put("listen_port", debug.diagPort)
+                    }
+                }
                 when (inbound) {
                     Inbound.Tun -> addJsonObject {
                         put("type", "tun")

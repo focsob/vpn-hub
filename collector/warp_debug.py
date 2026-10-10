@@ -96,7 +96,7 @@ def app_config(acct: dict, nodes: list[dict], inbound: str) -> dict:  # ConfigBu
         o = dict(n["config"], tag=n["name"])
         (endpoints if n["kind"] == "endpoint" else outbounds).append(o)
         tags.append(n["name"])
-    detour = None
+    detour = "direct"  # app 1.0.13+: direct WARP goes through the "direct" outbound
     if nodes:
         groups.append({"type": "urltest", "tag": "warp-up", "outbounds": tags,
                        "url": "https://www.gstatic.com/generate_204", "interval": "1m", "tolerance": 100,
