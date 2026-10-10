@@ -256,11 +256,14 @@ def annotate_ip_types(nodes: list[dict]) -> None:
     todo = [n["exit_ip"] for n in nodes if n.get("exit_ip") and "ip_type" not in n]
     info = iptype.classify(todo)
     for n in nodes:
-        if "ip_type" in n:
-            continue
         got = info.get(n.get("exit_ip", ""), {})
-        n["ip_type"] = got.get("ip_type", "unknown")
-        n["isp"] = got.get("isp", "")
+        if "ip_type" not in n:
+            n["ip_type"] = got.get("ip_type", "unknown")
+            n["isp"] = got.get("isp", "")
+        # the exit IP's registered country is finer-grained than Cloudflare's colo for rare countries
+        cc = got.get("cc")
+        if cc:
+            n["country"] = cc
     print("   " + ", ".join(f"{k} {v}" for k, v in Counter(n["ip_type"] for n in nodes).most_common()))
 
 

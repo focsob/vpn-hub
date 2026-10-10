@@ -21,7 +21,7 @@ import time
 import urllib.error
 import urllib.request
 
-API = "http://ip-api.com/batch?fields=status,query,isp,org,as,mobile,hosting,reverse"
+API = "http://ip-api.com/batch?fields=status,query,countryCode,isp,org,as,mobile,hosting,reverse"
 DC_LISTS = [
     "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/datacenter/ipv4.txt",
     "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/datacenter/ipv6.txt",
@@ -134,7 +134,7 @@ def classify(ips: list[str]) -> dict[str, dict]:
         row = info.get(ip)
         in_dc = _in_ranges(ip, dc_nets)
         if row is None:
-            result[ip] = {"ip_type": "dc" if in_dc else "unknown", "isp": ""}
+            result[ip] = {"ip_type": "dc" if in_dc else "unknown", "isp": "", "cc": ""}
             continue
         isp = row.get("isp") or row.get("org") or ""
         if row.get("mobile"):
@@ -145,5 +145,5 @@ def classify(ips: list[str]) -> dict[str, dict]:
             kind = "residential"
         else:
             kind = "isp"
-        result[ip] = {"ip_type": kind, "isp": isp[:60]}
+        result[ip] = {"ip_type": kind, "isp": isp[:60], "cc": (row.get("countryCode") or "").upper()}
     return result

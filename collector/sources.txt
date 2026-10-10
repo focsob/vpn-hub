@@ -84,3 +84,8 @@ socks5 https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt
 socks5 https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt
 http https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt
 http https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt
+
+# 稀有國家專門清單：柬埔寨（KH）、不丹（BT）、澳門（MO）
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Cambodia.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Bhutan.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Macao%20SAR%20China.txt
