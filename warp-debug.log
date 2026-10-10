@@ -1,0 +1,438 @@
+== register a WARP account exactly like the app
+registration response keys: {"id": "str", "type": "str", "model": "str", "name": "str", "key": "str", "account": ["account_type", "created", "id", "license", "premium_data", "quota", "referral_count", "referral_renewal_countdown", "role", "ttl", "updated", "usage", "warp_plus"], "config": ["client_id", "interface", "peers", "services"], "token": "str", "warp_enabled": "bool", "waitlist_enabled": "bool", "created": "str", "updated": "str", "tos": "str", "place": "int", "locale": "str", "enabled": "bool", "install_id": "str", "fcm_token": "str", "policy": ["always_exclude", "always_include", "post_quantum", "tunnel_protoco
+config keys: ['client_id', 'interface', 'peers', 'services']
+interface: {"addresses": {"v4": "172.16.0.2", "v6": "2606:4700:110:8087:4067:3fe6:5e34:6ef"}}
+peer: {"public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=", "endpoint": {"v4": "162.159.192.4:0", "v6": "[2606:4700:d0::a29f:c004]:0", "host": "engage.cloudflareclient.com:2408", "ports": [2408, 500, 1701, 4500]}}
+client_id present: True  account.warp_enabled: True  account: {"id": "e0b436d5-ef3a-4ed9-9a57-b3bf2ca350e6", "account_type": "free", "created": "2026-10-10T09:38:40.409806992Z", "updated": "2026-10-10T09:38:40.409806992Z", "premium_data": 0, "quota": 0, "usage": 0, "warp_plus": true, "referral_count": 0, "referral_renewal_countdown": 0, "role": "child", "licen
+account: {'privateKey': '<hidden>', 'peerPublicKey': 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=', 'v4': '172.16.0.2', 'v6': '2606:4700:110:8087:4067:3fe6:5e34:6ef', 'reserved': [5, 132, 71]}
+
+===== direct WARP on UDP 2408
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f190 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625125.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:38408: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [36mINFO[0m[0003] [[38;5;229m1055507417[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0003] [[38;5;229m1055507417[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0004] [[38;5;229m1055507417[0m 585ms] dns: exchanged www.cloudflare.com NOERROR 25
+   | [37mDEBUG[0m[0004] [[38;5;229m1055507417[0m 585ms] dns: exchanged www.cloudflare.com NOERROR 130
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+RESULT: WORKS
+
+===== direct WARP on UDP 500
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f146 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625129.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:52271: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [36mINFO[0m[0003] [[38;5;207m4287365311[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0003] [[38;5;207m4287365311[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0004] [[38;5;207m4287365311[0m 56ms] dns: exchanged www.cloudflare.com NOERROR 21
+   | [37mDEBUG[0m[0004] [[38;5;207m4287365311[0m 56ms] dns: exchanged www.cloudflare.com NOERROR 125
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+RESULT: WORKS
+
+===== direct WARP on UDP 4500
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f227 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625133.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:47422: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [36mINFO[0m[0003] [[38;5;123m2644478060[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0003] [[38;5;123m2644478060[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0004] [[38;5;123m2644478060[0m 52ms] dns: exchanged www.cloudflare.com NOERROR 16
+   | [37mDEBUG[0m[0004] [[38;5;123m2644478060[0m 52ms] dns: exchanged www.cloudflare.com NOERROR 121
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+RESULT: WORKS
+
+===== direct WARP on UDP 1701
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f212 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625137.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:35373: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [36mINFO[0m[0003] [[38;5;189m4278579498[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0003] [[38;5;189m4278579498[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0004] [[38;5;189m4278579498[0m 47ms] dns: exchanged www.cloudflare.com NOERROR 12
+   | [37mDEBUG[0m[0004] [[38;5;189m4278579498[0m 47ms] dns: exchanged www.cloudflare.com NOERROR 117
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+RESULT: WORKS
+
+===== direct WARP via mixed inbound
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f188 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625141.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:35394: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [36mINFO[0m[0003] [[38;5;69m2063914549[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0003] [[38;5;69m2063914549[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0003] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0004] [[38;5;69m2063914549[0m 48ms] dns: exchanged www.cloudflare.com NOERROR 8
+   | [37mDEBUG[0m[0004] [[38;5;69m2063914549[0m 48ms] dns: exchanged www.cloudflare.com NOERROR 113
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0004] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+RESULT: WORKS
+
+===== direct WARP via TUN (like Android)
+$ ip addr show tun-test -> rc=0
+    5: tun-test: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 9000 qdisc fq_codel state UNKNOWN group default qlen 500 |     link/none  |     inet 172.19.0.1/30 brd 172.19.0.3 scope global tun-test |        valid_lft forever preferred_lft forever |     inet6 fdfe:dcba:9876::1/126 scope global  |        valid_lft forever preferred_lft forever |     inet6 fe80::b6f2:cea8:b38:7eda/64 scope link stable-p
+$ dig +time=5 +tries=1 +short @172.19.0.2 www.cloudflare.com -> rc=0
+    104.16.123.96 | 104.16.124.96
+$ curl -sS --max-time 20 --interface tun-test https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=72f205 | h=www.cloudflare.com | ip=104.28.216.161 | ts=1791625147.000 | visit_scheme=https | uag=curl/8.5.0 | colo=MSP | sliver=none | http=http/2 | loc=US | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:50295: bind: address already in use
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming Open - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v6 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming v4 - started
+   | [33mWARN[0m[0000] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:50295: bind: address already in use
+   | [33mWARN[0m[0001] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:50295: bind: address already in use
+   | [33mWARN[0m[0002] endpoint/wireguard[warp]: listen egress member on docker0 (172.17.0.1): listen udp4 172.17.0.1:50295: bind: address already in use
+   | [36mINFO[0m[0005] [[38;5;76m2021748540[0m 0ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0005] [[38;5;76m2021748540[0m 44ms] dns: exchanged www.cloudflare.com NOERROR 108
+   | [36mINFO[0m[0005] [[38;5;62m1986880046[0m 1ms] endpoint/wireguard[warp]: outbound connection to 104.16.123.96:443
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: routine: receive incoming v4 - stopped
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: routine: receive incoming Open - stopped
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: routine: receive incoming v6 - stopped
+RESULT: WORKS
+
+WARP-capable nodes by WARP country: {'US': 6, 'DE': 7, 'JP': 6, 'NL': 7, 'GB': 4, 'PL': 5, 'CA': 1, 'EE': 1, 'LT': 1, 'FR': 5, 'LV': 2, 'FI': 6, 'KR': 4, 'HK': 2, 'TH': 2, 'TR': 5, 'TW': 1, 'SG': 3, 'KZ': 4, 'BY': 1, 'IN': 2, 'IL': 1, 'VN': 1, 'ID': 1}
+
+===== chain: 7 DE nodes (urltest) -> WARP, mixed inbound
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=933f46 | h=www.cloudflare.com | ip=104.28.197.9 | ts=1791625156.000 | visit_scheme=https | uag=curl/8.5.0 | colo=FRA | sliver=050-tier1 | http=http/2 | loc=DE | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming receive - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-010 available: 265ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-021 available: 251ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-037 available: 451ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound FI-010 available: 257ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-013 available: 261ms
+   | [37mDEBUG[0m[0005] outbound/urltest[warp-up]: outbound DE-014 unavailable: dial tcp 57.129.41.216:80: i/o timeout
+   | [36mINFO[0m[0007] [[38;5;75m3954029627[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0007] [[38;5;75m3954029627[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0008] [[38;5;75m3954029627[0m 663ms] dns: exchanged www.cloudflare.com NOERROR 276
+   | [37mDEBUG[0m[0008] [[38;5;75m3954029627[0m 663ms] dns: exchanged www.cloudflare.com NOERROR 267
+   | [37mDEBUG[0m[0009] endpoint/wireguard[warp]: routine: receive incoming receive - stopped
+   | [37mDEBUG[0m[0009] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+RESULT: WORKS
+
+===== chain: 7 DE nodes (urltest) -> WARP, TUN
+$ curl -sS --max-time 25 --interface tun-test https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=932f43 | h=www.cloudflare.com | ip=104.28.197.9 | ts=1791625165.000 | visit_scheme=https | uag=curl/8.5.0 | colo=FRA | sliver=050-tier1 | http=http/2 | loc=DE | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming receive - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-014 unavailable: unexpected HTTP response status: 404
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-010 available: 236ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-021 available: 253ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-037 available: 468ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound FI-010 available: 265ms
+   | [37mDEBUG[0m[0000] outbound/urltest[warp-up]: outbound DE-013 available: 388ms
+   | [36mINFO[0m[0007] [[38;5;169m2847794841[0m 1ms] endpoint/wireguard[warp]: outbound connection to 104.16.124.96:443
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: routine: receive incoming receive - stopped
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - stopped
+   | [37mDEBUG[0m[0008] endpoint/wireguard[warp]: interface state was Up, requested Down, now Down
+RESULT: WORKS
+
+===== chain: single node DE-001 -> WARP (detour straight to node)
+$ curl -sS --max-time 20 -x socks5h://127.0.0.1:17890 https://www.cloudflare.com/cdn-cgi/trace -> rc=0
+    fl=472f563 | h=www.cloudflare.com | ip=104.28.197.9 | ts=1791625172.000 | visit_scheme=https | uag=curl/8.5.0 | colo=FRA | sliver=050-tier1 | http=http/2 | loc=DE | tls=TLSv1.3 | sni=plaintext | warp=on | gateway=off | rbi=off | kex=X25519
+   sing-box log (wireguard/warp/errors):
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: uapi: updating private key
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 1 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 2 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 3 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: decryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: encryption worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: handshake worker 4 - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: tun reader - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: created
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: updating endpoint
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - uapi: Adding allowedip
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: event worker - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface up requested
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: udp bind has been updated
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - starting
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: interface state was Down, requested Up, now Up
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: routine: receive incoming receive - started
+   | [37mDEBUG[0m[0000] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - started
+   | [36mINFO[0m[0005] [[38;5;29m1127167716[0m 1ms] endpoint/wireguard[warp]: outbound connection to www.cloudflare.com:443
+   | [36mINFO[0m[0005] [[38;5;29m1127167716[0m 1ms] endpoint/wireguard[warp]: outbound connection to 1.1.1.1:443
+   | [37mDEBUG[0m[0005] endpoint/wireguard[warp]: peer(bmXO…fgyo) - sending handshake initiation
+   | [37mDEBUG[0m[0006] endpoint/wireguard[warp]: peer(bmXO…fgyo) - received handshake response
+   | [37mDEBUG[0m[0006] [[38;5;29m1127167716[0m 649ms] dns: exchanged www.cloudflare.com NOERROR 38
+   | [37mDEBUG[0m[0006] [[38;5;29m1127167716[0m 649ms] dns: exchanged www.cloudflare.com NOERROR 61
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: routine: receive incoming receive - stopped
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: peer(bmXO…fgyo) - stopping
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential sender - stopped
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: peer(bmXO…fgyo) - routine: sequential receiver - stopped
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: interface state was Up, requested Down, now Down
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: device closing
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: routine: tun reader - stopped
+   | [37mDEBUG[0m[0007] endpoint/wireguard[warp]: routine: event worker - stopped
+RESULT: WORKS
+
+===== SUMMARY
+  OK      direct WARP port 2408
+  OK      direct WARP port 500
+  OK      direct WARP port 4500
+  OK      direct WARP port 1701
+  OK      direct WARP, mixed inbound
+  OK      direct WARP, TUN
+  OK      chain via DE nodes, mixed
+  OK      chain via DE nodes, TUN
+  OK      chain via 1 node, no urltest
