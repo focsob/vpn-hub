@@ -176,9 +176,7 @@ object ConfigBuilder {
         val finalTag = if (plan.warp) {
             requireNotNull(warpAccount) { "WARP account missing" }
             val detour = if (plan.nodes.isEmpty()) {
-                // straight from the phone, but through the "direct" outbound: the same proven socket path as
-                // the node chain, instead of sing-box 1.14's per-interface WireGuard sockets
-                "direct"
+                null // straight from the phone (sing-box rejects a detour to a plain "direct" outbound)
             } else {
                 // checked every minute: when the node in use dies, the group moves to another node of the
                 // same WARP country and sing-box re-dials WARP's WireGuard session through it
