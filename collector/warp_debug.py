@@ -172,6 +172,12 @@ def main() -> None:
 
     curl_mixed = ["curl", "-sS", "--max-time", "20", "-x", "socks5h://127.0.0.1:17890", TRACE]
     results = {}
+    # which Cloudflare WARP UDP ports reach WARP from here (carriers often block 2408 only)
+    for port in (2408, 500, 4500, 1701):
+        cfg = app_config(acct, [], "mixed")
+        cfg["endpoints"][-1]["peers"][0]["port"] = port
+        results[f"direct WARP port {port}"] = run_case(f"direct WARP on UDP {port}", cfg, [curl_mixed])
+
     results["direct WARP, mixed inbound"] = run_case(
         "direct WARP via mixed inbound", app_config(acct, [], "mixed"), [curl_mixed])
     results["direct WARP, TUN"] = run_case(
