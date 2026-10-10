@@ -92,4 +92,3 @@ https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Ma
 
 # 主力搜集菲律賓（PH）節點
 https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Philippines.txt
-https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Philippines.txt
