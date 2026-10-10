@@ -209,8 +209,8 @@ def _curl_trace(port: int, timeout: int) -> dict | None:
     return dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
 
 
-def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 15,
-                    base_port: int = 46000) -> list[tuple[dict, str, int]]:
+def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 10,
+                    base_port: int = 46000, budget: int = 150) -> list[tuple[dict, str, int]]:
     """phone -> node -> Cloudflare WARP. Returns (node, WARP exit country, latency ms) for chains that work.
 
     Each node in a batch gets its own WARP account: one WireGuard key used from two places at once
@@ -220,7 +220,11 @@ def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 15,
         return []
     out = []
     width = len(accounts)
+    deadline = time.time() + budget  # hard time limit so the 10-minute schedule is kept
     for start in range(0, len(nodes), width):
+        if time.time() + timeout + 5 > deadline:
+            print(f"  chain test time budget reached after {start} nodes", flush=True)
+            break
         group = nodes[start:start + width]
         base_port = _free_base(base_port, len(group))
         cfg = _base_config()
@@ -246,13 +250,10 @@ def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 15,
                 continue
 
             def probe(i):
-                for attempt in range(2):
-                    t0 = time.time()
-                    info = _curl_trace(base_port + i, timeout)
-                    if info and info.get("warp") in ("on", "plus"):
-                        return info.get("loc", "ZZ").upper(), int((time.time() - t0) * 1000)
-                    if attempt == 0:
-                        time.sleep(3)
+                t0 = time.time()
+                info = _curl_trace(base_port + i, timeout)
+                if info and info.get("warp") in ("on", "plus"):
+                    return info.get("loc", "ZZ").upper(), int((time.time() - t0) * 1000)
                 return None
 
             with ThreadPoolExecutor(len(group)) as pool:

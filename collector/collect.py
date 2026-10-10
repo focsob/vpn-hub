@@ -46,7 +46,8 @@ SHARDS = int(ENV("SHARDS", "12"))
 # node -> WARP chain tests: protocols that can carry WireGuard's UDP, and how many to try per shard
 CHAIN_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "hysteria2", "hysteria", "tuic", "anytls",
                    "naive", "socks", "wireguard", "openvpn"}
-CHAIN_PER_SHARD = int(ENV("CHAIN_PER_SHARD", "48"))
+CHAIN_PER_ACCOUNT = int(ENV("CHAIN_PER_ACCOUNT", "6"))  # chains tested per WARP account per run
+CHAIN_BUDGET = int(ENV("CHAIN_BUDGET", "150"))  # seconds per shard
 GEOIP_DB = ENV("GEOIP_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "Country.mmdb"))
 
 
@@ -382,14 +383,15 @@ def phase_test(work: str, shard: str) -> None:
     for n in sorted(candidates, key=lambda n: n.get("latency") or 99999):
         by_cc[n["country"]].append(n)
     order = sorted(by_cc, key=lambda cc: (cc not in PRIORITY_COUNTRIES, -len(by_cc[cc])))
+    limit = CHAIN_PER_ACCOUNT * len(accounts)
     picked: list[dict] = []
-    while len(picked) < CHAIN_PER_SHARD and any(by_cc.values()):
+    while len(picked) < limit and any(by_cc.values()):
         for cc in order:
-            if by_cc[cc] and len(picked) < CHAIN_PER_SHARD:
+            if by_cc[cc] and len(picked) < limit:
                 picked.append(by_cc[cc].pop(0))
     if accounts and picked:
         print(f"== WARP chain test: {len(picked)} nodes with {len(accounts)} WARP accounts")
-        chains = singbox.test_warp_chain(picked, accounts)
+        chains = singbox.test_warp_chain(picked, accounts, budget=CHAIN_BUDGET)
         for node, cc, ms in chains:
             node["warp_cc"], node["warp_ms"] = cc, ms
         print(f"   {len(chains)} can carry WARP: " +
