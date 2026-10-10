@@ -23,13 +23,16 @@ env:
   PRIORITY_COUNTRIES: "PH,IN,TR,AR,KZ"
   # 測試分開幾多部雲端機同時做（要同下面 matrix 嘅數目一致）
   SHARDS: "12"
-  WARP_CACHE: work/warp_cache.json
+  # private WARP account pool for chain tests: kept in the Actions cache, never published
+  WARP_CACHE: warp/warp_pool.json
 
 jobs:
   # 1) fetch every source, de-duplicate, drop unreachable servers, split into shards
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      warp_key: ${{ steps.warpkey.outputs.key }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,15 +50,30 @@ jobs:
           curl -fsSL -o collector/Country.mmdb \
             https://github.com/Loyalsoldier/geoip/releases/latest/download/Country.mmdb
 
-      - name: Reuse WARP accounts from the previous run
-        run: |
-          mkdir -p work
-          git fetch -q --depth 1 origin nodes 2>/dev/null && git show origin/nodes:warp.json > "$WARP_CACHE" 2>/dev/null || rm -f "$WARP_CACHE"
+      - name: Restore WARP test accounts
+        uses: actions/cache/restore@v4
+        with:
+          path: warp
+          key: warp-pool-none
+          restore-keys: warp-pool-
 
       - name: Fetch and prepare
         run: |
           set -o pipefail
+          mkdir -p work warp
           python -u collector/collect.py prepare --work work 2>&1 | tee work/log-prepare.txt
+
+      - name: Name the WARP pool
+        id: warpkey
+        run: echo "key=warp-pool-$(sha256sum "$WARP_CACHE" 2>/dev/null | cut -c1-16 || echo empty)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WARP test accounts
+        uses: actions/cache/save@v4
+        if: hashFiles('warp/warp_pool.json') != ''
+        continue-on-error: true
+        with:
+          path: warp
+          key: ${{ steps.warpkey.outputs.key }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -91,6 +109,13 @@ jobs:
         with:
           name: work
           path: work
+
+      - name: Restore WARP test accounts
+        uses: actions/cache/restore@v4
+        with:
+          path: warp
+          key: ${{ needs.prepare.outputs.warp_key }}
+          restore-keys: warp-pool-
 
       - name: Test shard ${{ matrix.shard }}
         run: |

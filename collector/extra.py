@@ -254,22 +254,39 @@ WARP_ENDPOINTS = ["162.159.192.1", "162.159.193.1", "162.159.195.1", "188.114.97
 WARP_CACHE = os.environ.get("WARP_CACHE", "warp_cache.json")
 
 
+WARP_NEW_PER_RUN = int(os.environ.get("WARP_NEW_PER_RUN", "6"))
+
+
 def warp_accounts(count: int) -> list[dict]:
-    """WARP WireGuard endpoints, reusing accounts from the previous run so Cloudflare is not hit every 10 minutes."""
-    if count <= 0:
-        return []
+    """Private pool of WARP accounts used only to test node -> WARP chains (never published).
+
+    The pool lives in the GitHub Actions cache and grows by a few accounts per run up to `count`,
+    so Cloudflare's registration API is not hammered.
+    """
+    pool: list[dict] = []
     try:
         cached = json.load(open(WARP_CACHE))
-        if isinstance(cached, list) and len(cached) >= count:
-            return cached[:count]
+        if isinstance(cached, list):
+            pool = cached
     except (OSError, ValueError):
         pass
-    nodes = _register_warp(count)
+    missing = min(max(count - len(pool), 0), WARP_NEW_PER_RUN)
+    if missing:
+        pool += _register_warp(missing)
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(WARP_CACHE)), exist_ok=True)
+            json.dump(pool, open(WARP_CACHE, "w"))
+        except OSError:
+            pass
+    return pool[:count]
+
+
+def load_warp_pool() -> list[dict]:
     try:
-        json.dump(nodes, open(WARP_CACHE, "w"))
-    except OSError:
-        pass
-    return nodes
+        pool = json.load(open(WARP_CACHE))
+        return pool if isinstance(pool, list) else []
+    except (OSError, ValueError):
+        return []
 
 
 def _register_warp(count: int) -> list[dict]:

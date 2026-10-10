@@ -194,3 +194,78 @@ def test(nodes: list[dict], batch: int = 400, concurrency: int = 128, timeout: i
             log.close()
             os.unlink(path)
     return alive
+
+
+def _curl_trace(port: int, timeout: int) -> dict | None:
+    try:
+        r = subprocess.run(
+            ["curl", "-sS", "--max-time", str(timeout), "-x", f"socks5h://127.0.0.1:{port}",
+             "-o", "-", "-w", "\n__TIME=%{time_total}", TRACE_URL],
+            capture_output=True, text=True, timeout=timeout + 5)
+    except subprocess.TimeoutExpired:
+        return None
+    if r.returncode != 0 or "loc=" not in r.stdout:
+        return None
+    return dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+
+
+def test_warp_chain(nodes: list[dict], accounts: list[dict], timeout: int = 15,
+                    base_port: int = 46000) -> list[tuple[dict, str, int]]:
+    """phone -> node -> Cloudflare WARP. Returns (node, WARP exit country, latency ms) for chains that work.
+
+    Each node in a batch gets its own WARP account: one WireGuard key used from two places at once
+    makes the two sessions knock each other off.
+    """
+    if not nodes or not accounts:
+        return []
+    out = []
+    width = len(accounts)
+    for start in range(0, len(nodes), width):
+        group = nodes[start:start + width]
+        base_port = _free_base(base_port, len(group))
+        cfg = _base_config()
+        outbounds, endpoints, inbounds = [], [], []
+        for i, (node, acct) in enumerate(zip(group, accounts)):
+            up = dict(node["config"], tag=f"u{i}")
+            (endpoints if node["kind"] == "endpoint" else outbounds).append(up)
+            endpoints.append(dict(acct["config"], tag=f"w{i}", detour=f"u{i}"))
+            inbounds.append({"type": "mixed", "tag": f"in{i}", "listen": "127.0.0.1", "listen_port": base_port + i})
+            cfg["route"]["rules"].append({"inbound": [f"in{i}"], "outbound": f"w{i}"})
+        cfg["outbounds"] = outbounds + [{"type": "direct", "tag": "direct"}]
+        cfg["endpoints"] = endpoints
+        cfg["inbounds"] = inbounds
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(cfg, f)
+            path = f.name
+        log = tempfile.TemporaryFile("w+")
+        proc = subprocess.Popen([SING_BOX, "run", "-c", path], stdout=subprocess.DEVNULL, stderr=log, text=True)
+        try:
+            if not _wait_port(base_port + len(group) - 1):
+                log.seek(0)
+                print(f"  ! chain batch failed to start: {log.read(300).strip()}", flush=True)
+                continue
+
+            def probe(i):
+                for attempt in range(2):
+                    t0 = time.time()
+                    info = _curl_trace(base_port + i, timeout)
+                    if info and info.get("warp") in ("on", "plus"):
+                        return info.get("loc", "ZZ").upper(), int((time.time() - t0) * 1000)
+                    if attempt == 0:
+                        time.sleep(3)
+                return None
+
+            with ThreadPoolExecutor(len(group)) as pool:
+                results = list(pool.map(probe, range(len(group))))
+            for node, res in zip(group, results):
+                if res:
+                    out.append((node, res[0], res[1]))
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            log.close()
+            os.unlink(path)
+    return out

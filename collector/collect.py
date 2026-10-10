@@ -43,6 +43,10 @@ TCP_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "anytls", "naive", "
 PRIORITY_COUNTRIES = {c.strip().upper() for c in ENV("PRIORITY_COUNTRIES", "PH,IN,TR,AR,KZ").split(",") if c.strip()}
 PRIORITY_MAX = int(ENV("PRIORITY_MAX", "1000000"))
 SHARDS = int(ENV("SHARDS", "12"))
+# node -> WARP chain tests: protocols that can carry WireGuard's UDP, and how many to try per shard
+CHAIN_PROTOCOLS = {"vless", "vmess", "trojan", "shadowsocks", "hysteria2", "hysteria", "tuic", "anytls",
+                   "naive", "socks", "wireguard", "openvpn"}
+CHAIN_PER_SHARD = int(ENV("CHAIN_PER_SHARD", "48"))
 GEOIP_DB = ENV("GEOIP_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "Country.mmdb"))
 
 
@@ -232,7 +236,7 @@ def finalize(alive: list[dict]) -> list[dict]:
     out = []
     for n in alive:
         ip = n.get("exit_ip")
-        if ip and per_ip[ip] >= PER_EXIT_IP:
+        if ip and per_ip[ip] >= PER_EXIT_IP and not n.get("warp_cc"):  # keep every WARP-capable node
             continue
         if per_country[n["country"]] >= PER_COUNTRY:
             continue
@@ -278,6 +282,8 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
             "ip_type": n.get("ip_type", "unknown"),
             "isp": n.get("isp", ""),
         }
+        if n.get("warp_cc"):  # tested: this node can carry WARP, which then exits in warp_cc
+            rec["warp_cc"], rec["warp_ms"] = n["warp_cc"], n.get("warp_ms", 0)
         rec["config"] = n["config"]
         if n.get("link"):
             rec["link"] = clean_link(n["link"]) + "#" + rec["name"]
@@ -336,13 +342,13 @@ def phase_prepare(sources: list[str], work: str, shards: int) -> None:
     os.makedirs(work, exist_ok=True)
     print("== fetch")
     proxies, ovpn, warp = fetch_all(read_sources(sources))
-    stats = {"unique": len(proxies) + len(ovpn) + len(warp)}
-    print(f"== {len(proxies)} unique proxy nodes, {len(ovpn)} OpenVPN, {len(warp)} WARP")
+    stats = {"unique": len(proxies) + len(ovpn)}
+    print(f"== {len(proxies)} unique proxy nodes, {len(ovpn)} OpenVPN; WARP test pool: {len(warp)} accounts")
     print("== locate servers")
     geo_hint(proxies)
     proxies = cap_per_protocol(proxies)
     print("== reachability prefilter")
-    proxies = prefilter(proxies) + warp
+    proxies = prefilter(proxies)
     print(f"   {len(proxies)} reachable")
     stats["tested"] = len(proxies) + len(ovpn)
     random.shuffle(proxies)  # spread slow / dead-heavy sources evenly across shards
@@ -364,10 +370,32 @@ def phase_test(work: str, shard: str) -> None:
         alive = singbox.test(nodes, batch=100, concurrency=50, timeout=20, base_port=40000, warmup=20, retries=2)
     else:
         alive = singbox.test(nodes, concurrency=TEST_CONCURRENCY, timeout=TEST_TIMEOUT)
-    for n in alive:
-        if n.get("warp"):
-            n["country"] = "WARP"
     print(f"   {len(alive)} working")
+
+    # phone -> node -> WARP: which nodes can carry WARP, and which country WARP then exits in
+    pool = extra.load_warp_pool()
+    shard_no = SHARDS if shard == "ovpn" else int(shard)
+    accounts = pool[shard_no::SHARDS + 1]  # each shard gets its own accounts
+    candidates = [n for n in alive if n["protocol"] in CHAIN_PROTOCOLS]
+    # spread the tests over countries (priority countries first), fastest nodes first
+    by_cc: dict[str, list[dict]] = defaultdict(list)
+    for n in sorted(candidates, key=lambda n: n.get("latency") or 99999):
+        by_cc[n["country"]].append(n)
+    order = sorted(by_cc, key=lambda cc: (cc not in PRIORITY_COUNTRIES, -len(by_cc[cc])))
+    picked: list[dict] = []
+    while len(picked) < CHAIN_PER_SHARD and any(by_cc.values()):
+        for cc in order:
+            if by_cc[cc] and len(picked) < CHAIN_PER_SHARD:
+                picked.append(by_cc[cc].pop(0))
+    if accounts and picked:
+        print(f"== WARP chain test: {len(picked)} nodes with {len(accounts)} WARP accounts")
+        chains = singbox.test_warp_chain(picked, accounts)
+        for node, cc, ms in chains:
+            node["warp_cc"], node["warp_ms"] = cc, ms
+        print(f"   {len(chains)} can carry WARP: " +
+              ", ".join(f"{k} {v}" for k, v in Counter(cc for _, cc, _ in chains).most_common()))
+    else:
+        print(f"== WARP chain test skipped ({len(accounts)} accounts, {len(picked)} candidates)")
     _dump(alive, os.path.join(work, f"alive-{shard}.json"))
 
 
@@ -386,12 +414,10 @@ def phase_publish(work: str, out: str) -> None:
     stats["working"] = len(final)
     stats["by_ip_type"] = dict(Counter(n.get("ip_type", "unknown") for n in final))
     stats["by_protocol"] = dict(Counter(n["protocol"] for n in final))
+    stats["warp_chain"] = dict(Counter(n["warp_cc"] for n in final if n.get("warp_cc")))
     if not final:
         sys.exit("no working nodes; keeping the previous list")
     write_output(final, out, stats)
-    if os.path.exists(extra.WARP_CACHE):  # carried to the next run through the nodes branch
-        import shutil
-        shutil.copy(extra.WARP_CACHE, os.path.join(out, "warp.json"))
     print(f"== wrote {len(final)} nodes in {len({n['country'] for n in final})} countries -> {out}")
 
 

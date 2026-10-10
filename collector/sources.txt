@@ -3,7 +3,7 @@
 #   https://...            訂閱網址（純文字或 base64，內含 vless:// vmess:// trojan:// hysteria2:// wireguard:// 連結）
 #   vpngate <網址>          VPN Gate 公開 OpenVPN 伺服器清單
 #   ovpn <網址>             單一 .ovpn 檔
-#   warp <數量>             自動註冊 Cloudflare WARP（WireGuard）
+#   warp <數量>             測試「節點 → WARP」用嘅 WARP 帳戶數目（私人，唔會公開）
 # 想加自己嘅來源，請改 custom_sources.txt（同一格式），唔使改呢個檔。
 
 https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt
@@ -24,7 +24,7 @@ https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/sub
 https://raw.githubusercontent.com/mfuu/v2ray/master/sub
 
 vpngate http://www.vpngate.net/api/iphone/
-warp 3
+warp 52
 
 # 優先國家：菲律賓、印度、土耳其、阿根廷、哈薩克斯坦（按國家分好嘅清單）
 https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Philippines.txt
