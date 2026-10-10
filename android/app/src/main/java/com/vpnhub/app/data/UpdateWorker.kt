@@ -12,7 +12,7 @@ import com.vpnhub.app.vpn.VpnController
 import com.vpnhub.app.vpn.VpnState
 import java.util.concurrent.TimeUnit
 
-/** Hourly: pull the freshly tested list and, if connected, swap dead nodes out of the tunnel. */
+/** Every 15 minutes (Android's minimum) in the background; pull the freshly tested list and, if connected, swap dead nodes out of the tunnel. */
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -28,11 +28,11 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val NAME = "hourly-node-update"
 
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.HOURS, 15, TimeUnit.MINUTES)
+            val request = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
             WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+                .enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }
 }

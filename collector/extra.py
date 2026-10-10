@@ -251,10 +251,29 @@ WARP_PEER_KEY = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
 WARP_ENDPOINTS = ["162.159.192.1", "162.159.193.1", "162.159.195.1", "188.114.97.1"]
 
 
+WARP_CACHE = os.environ.get("WARP_CACHE", "warp_cache.json")
+
+
 def warp_accounts(count: int) -> list[dict]:
-    """Register anonymous Cloudflare WARP devices and emit WireGuard endpoints for them."""
+    """WARP WireGuard endpoints, reusing accounts from the previous run so Cloudflare is not hit every 10 minutes."""
     if count <= 0:
         return []
+    try:
+        cached = json.load(open(WARP_CACHE))
+        if isinstance(cached, list) and len(cached) >= count:
+            return cached[:count]
+    except (OSError, ValueError):
+        pass
+    nodes = _register_warp(count)
+    try:
+        json.dump(nodes, open(WARP_CACHE, "w"))
+    except OSError:
+        pass
+    return nodes
+
+
+def _register_warp(count: int) -> list[dict]:
+    """Register anonymous Cloudflare WARP devices and emit WireGuard endpoints for them."""
     try:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey

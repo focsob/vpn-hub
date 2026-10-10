@@ -15,6 +15,7 @@ import android.util.Log
 import com.vpnhub.app.App
 import com.vpnhub.app.R
 import com.vpnhub.app.data.ConfigBuilder
+import com.vpnhub.app.data.Countries
 import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.ui.MainActivity
@@ -37,6 +38,9 @@ import io.nekohasekai.libbox.SystemProxyStatus
 import io.nekohasekai.libbox.TunOptions
 import io.nekohasekai.libbox.WIFIState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -66,6 +70,8 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
     private val lock = Mutex()
     private var commandServer: CommandServer? = null
     private var tunFd: ParcelFileDescriptor? = null
+    private var currentText = ""
+    private var backgroundJobs: Job? = null
     private val proxyMode get() = vpn == null
 
     fun onStartCommand(intent: Intent?): Int {
@@ -105,7 +111,14 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
             Prefs.protocols.value,
             Prefs.ipTypes.value,
             Prefs.groupSize,
+            if (proxyMode) emptyList() else Prefs.splitRules.value,
         ) ?: return null
+        VpnState._splitWarning.value = when {
+            proxyMode && Prefs.splitRules.value.any { it.enabled } -> "分流只喺 VPN 模式生效"
+            plan.unavailable.isNotEmpty() ->
+                "以下分流暫時冇可用節點，改用主要選擇：" + plan.unavailable.joinToString("、") { Countries.name(it) }
+            else -> null
+        }
         val inbound = if (proxyMode) {
             ConfigBuilder.Inbound.Proxy(Prefs.proxyPort, Prefs.proxyAllowLan)
         } else {
@@ -142,7 +155,9 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
             server.startOrReloadService(config, overrideOptions())
             VpnState._label.value = describe(label)
             VpnState._status.value = VpnState.Status.Connected
-            updateNotification("已連線：${describe(label)}")
+            currentText = "已連線：${describe(label)}"
+            updateNotification(currentText)
+            startBackgroundJobs()
         } catch (e: Exception) {
             Log.e(TAG, "start failed", e)
             VpnState._error.value = "連線失敗：${e.message}"
@@ -156,7 +171,8 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
             val (config, label) = currentConfig() ?: error("冇可用節點")
             server.startOrReloadService(config, overrideOptions())
             VpnState._label.value = describe(label)
-            updateNotification("已連線：${describe(label)}")
+            currentText = "已連線：${describe(label)}"
+            updateNotification(currentText)
         } catch (e: Exception) {
             Log.e(TAG, "reload failed", e)
             VpnState._error.value = "切換失敗：${e.message}"
@@ -172,7 +188,34 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         teardown()
     }
 
+    /** While connected: live speed, speed in the notification, and a fresh node list every 10 minutes. */
+    private fun startBackgroundJobs() {
+        backgroundJobs?.cancel()
+        backgroundJobs = scope.launch {
+            SpeedMeter.start(this)
+            launch {
+                SpeedMeter.speed.collect { s ->
+                    if (currentText.isNotEmpty()) {
+                        updateNotification("↑ ${SpeedMeter.rate(s.up)}   ↓ ${SpeedMeter.rate(s.down)}\n$currentText")
+                    }
+                    delay(2000) // notifications are rate-limited by the system
+                }
+            }
+            launch {
+                while (isActive) {
+                    delay(10 * 60 * 1000L)
+                    if (Prefs.autoUpdate && NodeRepository.refresh().isSuccess) reload()
+                }
+            }
+        }
+    }
+
     private fun teardown() {
+        backgroundJobs?.cancel()
+        backgroundJobs = null
+        SpeedMeter.stop()
+        currentText = ""
+        VpnState._splitWarning.value = null
         commandServer?.let { server ->
             runCatching { server.closeService() }
             runCatching { server.close() }
@@ -207,6 +250,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .addAction(Notification.Action.Builder(null, "斷開", stop).build())
             .build()
     }

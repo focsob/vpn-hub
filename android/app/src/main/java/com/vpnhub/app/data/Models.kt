@@ -139,3 +139,19 @@ object Countries {
         return String(Character.toChars(base + code[0].code)) + String(Character.toChars(base + code[1].code))
     }
 }
+
+/** Per-app routing: apps in [packages] use nodes in [target] country (or go out directly). */
+@Serializable
+data class SplitRule(
+    val id: String,
+    val target: String,
+    val packages: List<String> = emptyList(),
+    val enabled: Boolean = true,
+) {
+    companion object {
+        const val DIRECT = "DIRECT"
+
+        fun targetLabel(target: String) =
+            if (target == DIRECT) "🏠 直連（唔經 VPN）" else "${Countries.flag(target)} ${Countries.name(target)}"
+    }
+}

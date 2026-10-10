@@ -1,10 +1,10 @@
 name: Update nodes
 
-# Every hour: fetch public node lists, test every node with real cores,
+# Every 10 minutes: fetch public node lists, test every node with real cores,
 # group the working ones by exit country and publish them to the "nodes" branch.
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -42,6 +42,10 @@ jobs:
           python -m pip install -q -r collector/requirements.txt
           curl -fsSL -o collector/Country.mmdb \
             https://github.com/Loyalsoldier/geoip/releases/latest/download/Country.mmdb
+
+      - name: Reuse WARP accounts from the previous run
+        run: |
+          git fetch -q --depth 1 origin nodes 2>/dev/null && git show origin/nodes:warp.json > warp_cache.json 2>/dev/null || rm -f warp_cache.json
 
       - name: Collect and test nodes
         run: |

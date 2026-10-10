@@ -8,6 +8,8 @@ plugins {
 // CI passes -PnodesUrl=https://raw.githubusercontent.com/<you>/<repo>/nodes/nodes.json
 val nodesUrl = (project.findProperty("nodesUrl") as String?) ?: ""
 val buildNumber = ((project.findProperty("buildNumber") as String?) ?: "1").toInt()
+// owner/repo used to check GitHub Releases for app updates
+val repoSlug = (project.findProperty("repoSlug") as String?) ?: ""
 
 android {
     namespace = "com.vpnhub.app"
@@ -20,6 +22,7 @@ android {
         versionCode = buildNumber
         versionName = "1.0.$buildNumber"
         buildConfigField("String", "NODES_URL", "\"$nodesUrl\"")
+        buildConfigField("String", "REPO", "\"$repoSlug\"")
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 

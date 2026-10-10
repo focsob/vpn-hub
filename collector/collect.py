@@ -364,6 +364,9 @@ def main() -> None:
     if not final:
         sys.exit("no working nodes; keeping the previous list")
     write_output(final, args.out, stats)
+    if os.path.exists(extra.WARP_CACHE):  # carried to the next run through the nodes branch
+        import shutil
+        shutil.copy(extra.WARP_CACHE, os.path.join(args.out, "warp.json"))
     print(f"== wrote {len(final)} nodes in {len({n['country'] for n in final})} countries -> {args.out}")
 
 

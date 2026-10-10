@@ -54,7 +54,9 @@ import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.data.Protocols
 import com.vpnhub.app.data.Selection
+import com.vpnhub.app.vpn.SpeedMeter
 import com.vpnhub.app.vpn.VpnState
+import com.vpnhub.app.data.SplitRule
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -96,6 +98,10 @@ fun MainScreen(
     val status by VpnState.status.collectAsStateWithLifecycle()
     val label by VpnState.label.collectAsStateWithLifecycle()
     val vpnError by VpnState.error.collectAsStateWithLifecycle()
+    val splitWarning by VpnState.splitWarning.collectAsStateWithLifecycle()
+    val speed by SpeedMeter.speed.collectAsStateWithLifecycle()
+    val splitRules by Prefs.splitRules.collectAsStateWithLifecycle()
+    var showSplit by remember { mutableStateOf(false) }
     val selection by Prefs.selection.collectAsStateWithLifecycle()
     val protocols by Prefs.protocols.collectAsStateWithLifecycle()
     val ipTypes by Prefs.ipTypes.collectAsStateWithLifecycle()
@@ -142,12 +148,28 @@ fun MainScreen(
                     status = status,
                     label = label,
                     error = vpnError ?: repoError,
+                    warning = splitWarning,
+                    speed = speed,
                     updated = list?.updated?.let(::formatUpdated),
                     total = visible.size,
                     countries = byCountry.size,
                     onConnect = onConnect,
                     onDisconnect = onDisconnect,
                 )
+            }
+            item {
+                val active = splitRules.filter { it.enabled && it.packages.isNotEmpty() }
+                SelectRow(
+                    title = "🔀 分流（${active.size} 條規則）",
+                    subtitle = if (active.isEmpty()) {
+                        "指定某啲 App 用某個國家，例如 LINE 用日本"
+                    } else {
+                        active.joinToString("、") { "${it.packages.size} 個 App → ${SplitRule.targetLabel(it.target)}" }
+                    },
+                    selected = false,
+                    onClick = { showSplit = true },
+                )
+                HorizontalDivider()
             }
             item {
                 Row(
@@ -228,6 +250,10 @@ fun MainScreen(
         }
     }
 
+    if (showSplit) {
+        SplitScreen(onDismiss = { showSplit = false }, onChanged = onSelectionChanged)
+    }
+
     if (showSettings) {
         SettingsDialog(onDismiss = { showSettings = false }, onSaved = onSettingsSaved)
     }
@@ -238,6 +264,8 @@ private fun StatusCard(
     status: VpnState.Status,
     label: String,
     error: String?,
+    warning: String?,
+    speed: SpeedMeter.Speed,
     updated: String?,
     total: Int,
     countries: Int,
@@ -272,6 +300,24 @@ private fun StatusCard(
                 "節點：$total 個 · $countries 個地區" + (updated?.let { " · 更新：$it" } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (connected) {
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("↑ 上傳", style = MaterialTheme.typography.labelSmall)
+                        Text(SpeedMeter.rate(speed.up), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("共 ${SpeedMeter.size(speed.totalUp)}", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("↓ 下載", style = MaterialTheme.typography.labelSmall)
+                        Text(SpeedMeter.rate(speed.down), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("共 ${SpeedMeter.size(speed.totalDown)}", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            if (warning != null) {
+                Text(warning, color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.bodySmall)
+            }
             if (error != null) {
                 Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }

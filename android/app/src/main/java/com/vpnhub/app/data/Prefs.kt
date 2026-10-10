@@ -6,6 +6,7 @@ import com.vpnhub.app.App
 import com.vpnhub.app.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.builtins.ListSerializer
 
 object Prefs {
     const val MODE_VPN = "vpn"
@@ -26,6 +27,25 @@ object Prefs {
 
     /** Exit IP types (Data Centre / Residential / ISP / Mobile) the user wants. */
     val ipTypes: StateFlow<Set<String>> = _ipTypes
+
+    private val _splitRules = MutableStateFlow(
+        runCatching {
+            json.decodeFromString(ListSerializer(SplitRule.serializer()), sp.getString("split_rules", "[]") ?: "[]")
+        }.getOrDefault(emptyList()),
+    )
+
+    /** Per-app routing rules (VPN mode only). */
+    val splitRules: StateFlow<List<SplitRule>> = _splitRules
+
+    fun setSplitRules(rules: List<SplitRule>) {
+        _splitRules.value = rules
+        sp.edit().putString("split_rules", json.encodeToString(ListSerializer(SplitRule.serializer()), rules)).apply()
+    }
+
+    /** Release tag the user chose to skip in the update prompt. */
+    var skippedUpdate: String
+        get() = sp.getString("skipped_update", "") ?: ""
+        set(v) = sp.edit().putString("skipped_update", v).apply()
 
     var nodesUrl: String
         get() = sp.getString("nodes_url", null)?.takeIf { it.isNotBlank() } ?: BuildConfig.NODES_URL

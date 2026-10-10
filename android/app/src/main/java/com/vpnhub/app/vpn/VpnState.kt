@@ -20,6 +20,10 @@ object VpnState {
     /** Mode of the running service (VPN or proxy). */
     val mode: StateFlow<String> = _mode
 
+    internal val _splitWarning = MutableStateFlow<String?>(null)
+    /** Shown when some split-routing rules cannot be applied right now. */
+    val splitWarning: StateFlow<String?> = _splitWarning
+
     internal val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
