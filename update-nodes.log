@@ -1,0 +1,281 @@
+== fetch
+    6790  https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt
+    6787  https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt
+   16690  https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/all_extracted_configs.txt
+    3746  https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/base64/all_sub.txt
+     188  https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/filtered/subs/hysteria2.txt
+   12076  https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless
+     336  https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/v2
+      54  https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/tr
+      12  https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/hysteria2
+      61  https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/airport_sub_merge.txt
+     424  https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list_raw.txt
+     144  https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt
+      49  https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt
+      20  https://raw.githubusercontent.com/Pawdroid/Free-servers/main/static/sub_en
+     515  https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/sub
+     384  https://raw.githubusercontent.com/mfuu/v2ray/master/sub
+       5  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Philippines.txt
+      26  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/India.txt
+       1  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Tr.txt
+       1  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Argentina.txt
+      27  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Kazakhstan.txt
+      10  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Philippines.txt
+      41  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/India.txt
+     122  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Turkey.txt
+      22  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Kazakhstan.txt
+       4  https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/IN.txt
+       3  https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt
+       4  https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KZ.txt
+       6  https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/India.txt
+  ! https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Turkey.txt: HTTP Error 404: Not Found
+       1  https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/splitted-by-country/Kazakhstan.txt
+    4124  https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_yaml.yml
+     201  https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Eternity.yml
+     556  https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml
+     540  https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.meta.yml
+       0  https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/separated-protocols/tuic_configs.txt
+     239  https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/ss
+   36054  https://raw.githubusercontent.com/10ium/V2ray-Config/main/All_Configs_Sub.txt
+    8587  https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/all_configs.txt
+   31261  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/ShadowSocks.txt
+   10811  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Vmess.txt
+   15667  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Vless.txt
+    5137  https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Trojan.txt
+     642  https://raw.githubusercontent.com/Danialsamadi/v2go/main/AllConfigsSub.txt
+     513  https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/Best-Results/sub.txt
+     508  https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/main/Best-Results/clash.yaml
+   11412  https://raw.githubusercontent.com/Firmfox/Proxify/main/v2ray_configs/separated_by_protocol/mixed.txt
+    1211  https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt
+     284  https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/shadowsocks.txt
+     246  https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/vless.txt
+     490  https://raw.githubusercontent.com/ShatakVPN/ConfigForge-V2Ray/main/configs/all.txt
+     114  https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_SS
+     155  https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_Vmess
+     281  https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_Reality
+     238  https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/main/Clash_T%2CH
+      18  https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Cambodia.txt
+       3  https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Bhutan.txt
+      66  https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Macao%20SAR%20China.txt
+     660  https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/working/countries/Philippines.txt
+     384  https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt
+   49695  https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt
+       4  https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt
+     172  https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
+    4747  https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt
+      69  https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt
+    1915  https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt
+      21  https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt
+    2303  https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt
+     528  https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/http.txt
+      99  http://www.vpngate.net/api/iphone/ (OpenVPN)
+      52  Cloudflare WARP (WireGuard)
+== 105745 unique proxy nodes, 99 OpenVPN; WARP test pool: 52 accounts
+== locate servers
+  priority candidates by server location: TR 527, IN 392, PH 270, KZ 264, KH 94, AR 71, MO 16
+  vless       33673 others -> testing 33673
+  shadowsocks   4365 others -> testing 4365
+  hysteria2     645 others -> testing 645
+  trojan       3910 others -> testing 3910
+  vmess        5613 others -> testing 5613
+  socks       50455 others -> testing 50455
+  http         5404 others -> testing 5404
+  hysteria        1 others -> testing 1
+  anytls         23 others -> testing 23
+  tuic            3 others -> testing 3
+  wireguard      19 others -> testing 19
+  priority countries (AR,BT,IN,KH,KZ,MO,PH,TR): testing 1634
+== reachability prefilter
+   34310 reachable
+== 12 proxy shards of ~2859 + 1 OpenVPN shard of 99
+---- work/log-0.txt
+== shard 0: 2860 nodes
+   2860 accepted by sing-box
+  batch 1: 28/400 alive
+  batch 2: 34/400 alive
+  batch 3: 27/400 alive
+  batch 4: 28/400 alive
+  batch 5: 24/400 alive
+  batch 6: 28/400 alive
+  batch 7: 32/400 alive
+  batch 8: 7/60 alive
+   208 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   8 can carry WARP: TR 1, NL 1, JP 1, SG 1, HK 1, CA 1, IT 1, ES 1
+---- work/log-1.txt
+== shard 1: 2860 nodes
+   2860 accepted by sing-box
+  batch 1: 29/400 alive
+  batch 2: 31/400 alive
+  batch 3: 29/400 alive
+  batch 4: 32/400 alive
+  batch 5: 24/400 alive
+  batch 6: 29/400 alive
+  batch 7: 29/400 alive
+  batch 8: 6/60 alive
+   209 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   12 can carry WARP: US 1, SG 1, DE 1, JP 1, GB 1, ID 1, CA 1, HK 1, RO 1, EE 1, RU 1, LT 1
+---- work/log-2.txt
+== shard 2: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 35/400 alive
+  batch 2: 27/400 alive
+  batch 3: 38/400 alive
+  batch 4: 24/400 alive
+  batch 5: 34/400 alive
+  batch 6: 29/400 alive
+  batch 7: 31/400 alive
+  batch 8: 2/59 alive
+   220 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   15 can carry WARP: US 2, IN 1, TR 1, FR 1, DE 1, JP 1, ES 1, PL 1, CA 1, KR 1, GB 1, LV 1, CH 1, AU 1
+---- work/log-3.txt
+== shard 3: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 34/400 alive
+  batch 2: 41/400 alive
+  batch 3: 40/400 alive
+  batch 4: 28/400 alive
+  batch 5: 23/400 alive
+  batch 6: 28/400 alive
+  batch 7: 35/400 alive
+  batch 8: 7/59 alive
+   236 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   10 can carry WARP: NL 1, DE 1, SG 1, FI 1, HK 1, GB 1, BG 1, CH 1, CA 1, PL 1
+---- work/log-4.txt
+== shard 4: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 33/400 alive
+  batch 2: 35/400 alive
+  batch 3: 21/400 alive
+  batch 4: 27/400 alive
+  batch 5: 27/400 alive
+  batch 6: 23/400 alive
+  batch 7: 42/400 alive
+  batch 8: 3/59 alive
+   211 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   9 can carry WARP: IN 1, US 1, FR 1, KR 1, DE 1, AL 1, FI 1, GB 1, IT 1
+---- work/log-5.txt
+== shard 5: 2859 nodes
+   2858 accepted by sing-box
+  batch 1: 40/400 alive
+  batch 2: 27/400 alive
+  batch 3: 31/400 alive
+  batch 4: 28/400 alive
+  batch 5: 38/400 alive
+  batch 6: 34/400 alive
+  batch 7: 23/400 alive
+  batch 8: 3/58 alive
+   224 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   8 can carry WARP: TR 1, PL 1, HK 1, VN 1, BY 1, IT 1, TH 1, MY 1
+---- work/log-6.txt
+== shard 6: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 39/400 alive
+  batch 2: 38/400 alive
+  batch 3: 29/400 alive
+  batch 4: 21/400 alive
+  batch 5: 31/400 alive
+  batch 6: 38/400 alive
+  batch 7: 24/400 alive
+  batch 8: 3/59 alive
+   223 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   11 can carry WARP: US 1, DE 1, JP 1, KR 1, ID 1, PL 1, FI 1, CH 1, CA 1, GB 1, LT 1
+---- work/log-7.txt
+== shard 7: 2859 nodes
+   2858 accepted by sing-box
+  batch 1: 28/400 alive
+  batch 2: 31/400 alive
+  batch 3: 25/400 alive
+  batch 4: 28/400 alive
+  batch 5: 29/400 alive
+  batch 6: 30/400 alive
+  batch 7: 27/400 alive
+  batch 8: 3/58 alive
+   201 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   14 can carry WARP: TR 1, KZ 1, US 1, DE 1, JP 1, BR 1, FI 1, ID 1, SG 1, CA 1, IT 1, ES 1, PL 1, LV 1
+---- work/log-8.txt
+== shard 8: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 38/400 alive
+  batch 2: 33/400 alive
+  batch 3: 33/400 alive
+  batch 4: 28/400 alive
+  batch 5: 31/400 alive
+  batch 6: 34/400 alive
+  batch 7: 28/400 alive
+  batch 8: 4/59 alive
+   229 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   12 can carry WARP: IN 1, TR 1, NL 1, JP 1, SG 1, PL 1, KR 1, HK 1, GB 1, FI 1, CH 1, LV 1
+---- work/log-9.txt
+== shard 9: 2859 nodes
+   2858 accepted by sing-box
+  batch 1: 41/400 alive
+  batch 2: 29/400 alive
+  batch 3: 27/400 alive
+  batch 4: 28/400 alive
+  batch 5: 30/400 alive
+  batch 6: 23/400 alive
+  batch 7: 34/400 alive
+  batch 8: 4/58 alive
+   216 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   14 can carry WARP: PL 2, IN 1, TR 1, US 1, NL 1, JP 1, SG 1, KR 1, GB 1, CH 1, EE 1, HK 1, BY 1
+---- work/log-10.txt
+== shard 10: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 32/400 alive
+  batch 2: 28/400 alive
+  batch 3: 31/400 alive
+  batch 4: 32/400 alive
+  batch 5: 31/400 alive
+  batch 6: 26/400 alive
+  batch 7: 32/400 alive
+  batch 8: 9/59 alive
+   221 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   8 can carry WARP: IN 1, KZ 1, NL 1, SG 1, HK 1, KR 1, FI 1, RO 1
+---- work/log-11.txt
+== shard 11: 2859 nodes
+   2859 accepted by sing-box
+  batch 1: 24/400 alive
+  batch 2: 37/400 alive
+  batch 3: 26/400 alive
+  batch 4: 33/400 alive
+  batch 5: 34/400 alive
+  batch 6: 23/400 alive
+  batch 7: 35/400 alive
+  batch 8: 5/59 alive
+   217 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   7 can carry WARP: KZ 1, FR 1, FI 1, KR 1, HK 1, EE 1, GB 1
+---- work/log-ovpn.txt
+== shard ovpn: 99 nodes
+   99 accepted by sing-box
+  batch 1: 47/99 alive
+   47 working
+== WARP chain test: 24 nodes with 4 WARP accounts
+   15 can carry WARP: JP 6, KR 4, BG 2, CA 1, PE 1, TH 1
+     208  alive-0.json
+     209  alive-1.json
+     221  alive-10.json
+     217  alive-11.json
+     220  alive-2.json
+     236  alive-3.json
+     211  alive-4.json
+     224  alive-5.json
+     223  alive-6.json
+     201  alive-7.json
+     229  alive-8.json
+     216  alive-9.json
+      47  alive-ovpn.json
+== IP type
+   dc 1463, isp 410, mobile 15
+== wrote 1888 nodes in 78 countries -> out
