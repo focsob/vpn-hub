@@ -1,0 +1,39 @@
+name: WARP debug
+
+# Reproduces the app's WARP setup (account registration + exact config, mixed inbound and TUN)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["collector/warp_debug.py", ".github/workflows/warp-debug.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sing-box
+        run: |
+          curl -fsSL -o /tmp/sb.tgz https://github.com/SagerNet/sing-box/releases/download/v1.14.3/sing-box-1.14.3-linux-amd64.tar.gz
+          tar xzf /tmp/sb.tgz -C /tmp
+          sudo install /tmp/sing-box-1.14.3-linux-amd64/sing-box /usr/local/bin/sing-box
+      - name: Run WARP diagnostics
+        env:
+          NODES_URL: https://raw.githubusercontent.com/${{ github.repository }}/nodes/nodes.json
+        run: |
+          mkdir -p logs
+          sudo -E python3 -u collector/warp_debug.py 2>&1 | tee logs/warp-debug.log
+      - name: Upload log to the logs-warp-debug branch
+        if: always()
+        run: |
+          cd logs
+          git init -q -b logs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "warp debug $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" logs:logs-warp-debug
