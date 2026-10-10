@@ -152,12 +152,13 @@ object ConfigBuilder {
             }
         }
 
-        fun urltest(tag: String, members: List<String>) = buildJsonObject {
+        // interval: how soon a dead node is noticed and replaced
+        fun urltest(tag: String, members: List<String>, interval: String = "3m") = buildJsonObject {
             put("type", "urltest")
             put("tag", tag)
             putJsonArray("outbounds") { members.forEach { add(it) } }
             put("url", "https://www.gstatic.com/generate_204")
-            put("interval", "5m")
+            put("interval", interval)
             put("tolerance", 100)
             put("idle_timeout", "30m")
         }
@@ -169,7 +170,9 @@ object ConfigBuilder {
             val detour = if (plan.nodes.isEmpty()) {
                 null
             } else {
-                groups += urltest("warp-up", tagsFor(plan.nodes))
+                // checked every minute: when the node in use dies, the group moves to another node of the
+                // same WARP country and sing-box re-dials WARP's WireGuard session through it
+                groups += urltest("warp-up", tagsFor(plan.nodes), "1m")
                 "warp-up"
             }
             endpoints += Warp.endpoint(warpAccount, "warp", detour)
