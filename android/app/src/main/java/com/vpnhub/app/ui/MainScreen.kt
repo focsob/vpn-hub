@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -109,8 +110,11 @@ fun MainScreen(
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showSettings by remember { mutableStateOf(false) }
 
-    val visible = list?.nodes.orEmpty().filter { Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
-    val byCountry = visible.groupBy { it.country }.entries.sortedWith(
+    val warpMode by Prefs.warpMode.collectAsStateWithLifecycle()
+    val filtered = list?.nodes.orEmpty().filter { Protocols.matches(it, protocols) && IpTypes.matches(it, ipTypes) }
+    // WARP mode lists the nodes that can carry WARP, grouped by the country WARP then exits in
+    val visible = if (warpMode) filtered.filter { it.warpCc != null } else filtered
+    val byCountry = visible.groupBy { if (warpMode) it.warpCc!! else it.country }.entries.sortedWith(
         compareBy<Map.Entry<String, List<Node>>> { it.key == "WARP" || it.key == "ZZ" }
             .thenByDescending { it.value.size },
     )
@@ -208,11 +212,48 @@ fun MainScreen(
                 }
             }
             item {
+                Row(
+                    Modifier.fillMaxWidth().clickable {
+                        Prefs.setWarpMode(!warpMode)
+                        onSelectionChanged()
+                    }.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("☁️ 經 WARP 出口", fontWeight = FontWeight.Bold)
+                        Text(
+                            if (warpMode) {
+                                "手機 → 所選國家嘅節點 → Cloudflare WARP，WARP 喺嗰個國家出口。下面只列出雲端實測接得通 WARP 嘅節點，按 WARP 出口國家分類。"
+                            } else {
+                                "開咗之後，揀國家就會變成「經嗰個國家嘅節點再接 WARP」，用 WARP 喺嗰個國家出口。"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Switch(checked = warpMode, onCheckedChange = {
+                        Prefs.setWarpMode(it)
+                        onSelectionChanged()
+                    })
+                }
+                HorizontalDivider()
+            }
+            item {
                 SelectRow(
-                    title = "⚡ 全部最快（自動）",
-                    subtitle = "喺最快嘅 ${Prefs.groupSize} 個節點之間自動揀、斷咗自動換",
+                    title = if (warpMode) "☁️ WARP · 全部最快（自動）" else "⚡ 全部最快（自動）",
+                    subtitle = if (warpMode) {
+                        "經最快嘅接得通 WARP 嘅節點，WARP 出口國家會跟住變"
+                    } else {
+                        "喺最快嘅 ${Prefs.groupSize} 個節點之間自動揀、斷咗自動換"
+                    },
                     selected = selection == Selection.Fastest,
                     onClick = { select(Selection.Fastest) },
+                )
+                HorizontalDivider()
+                SelectRow(
+                    title = "☁️ Cloudflare WARP（直接・就近出口）",
+                    subtitle = "手機直接連 WARP，唔經其他節點；出口喺你附近。用你部手機自己嘅 WARP 帳戶。",
+                    selected = selection == Selection.Country("WARP"),
+                    onClick = { select(Selection.Country("WARP")) },
                 )
                 HorizontalDivider()
             }
@@ -241,6 +282,7 @@ fun MainScreen(
                     items(sorted, key = { "n-${it.id}" }) { node ->
                         NodeRow(
                             node = node,
+                            warpMode = warpMode,
                             selected = selection == Selection.Single(node.id),
                             onClick = { select(Selection.Single(node.id)) },
                         )
@@ -397,7 +439,7 @@ private fun CountryRow(
 }
 
 @Composable
-private fun NodeRow(node: Node, selected: Boolean, onClick: () -> Unit) {
+private fun NodeRow(node: Node, selected: Boolean, onClick: () -> Unit, warpMode: Boolean = false) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 56.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -408,6 +450,15 @@ private fun NodeRow(node: Node, selected: Boolean, onClick: () -> Unit) {
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (warpMode) {
+                Text(
+                    "經 ${Countries.flag(node.country)} ${Countries.name(node.country)} 節點 → WARP" +
+                        if (node.warpMs > 0) " · ${node.warpMs} ms" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
                 IpTypes.label(node.ipType) + if (node.isp.isNotBlank()) " · ${node.isp}" else "",
                 style = MaterialTheme.typography.bodySmall,

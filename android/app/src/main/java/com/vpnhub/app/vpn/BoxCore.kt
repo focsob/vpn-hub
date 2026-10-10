@@ -16,6 +16,7 @@ import com.vpnhub.app.App
 import com.vpnhub.app.R
 import com.vpnhub.app.data.ConfigBuilder
 import com.vpnhub.app.data.Countries
+import com.vpnhub.app.data.Warp
 import com.vpnhub.app.data.NodeRepository
 import com.vpnhub.app.data.Prefs
 import com.vpnhub.app.ui.MainActivity
@@ -104,7 +105,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
 
     // ------------------------------------------------------------------ lifecycle
 
-    private fun currentConfig(): Pair<String, String>? {
+    private suspend fun currentConfig(): Pair<String, String>? {
         val plan = ConfigBuilder.plan(
             NodeRepository.list.value,
             Prefs.selection.value,
@@ -112,6 +113,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
             Prefs.ipTypes.value,
             Prefs.groupSize,
             if (proxyMode) emptyList() else Prefs.splitRules.value,
+            Prefs.warpMode.value,
         ) ?: return null
         VpnState._splitWarning.value = when {
             proxyMode && Prefs.splitRules.value.any { it.enabled } -> "分流只喺 VPN 模式生效"
@@ -124,12 +126,24 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         } else {
             ConfigBuilder.Inbound.Tun
         }
-        return ConfigBuilder.build(plan, inbound) to plan.label
+        // first WARP use registers this phone's own WARP account (straight out, before the tunnel uses it)
+        val warpAccount = if (plan.warp) {
+            runCatching { Warp.account() }.getOrElse { throw IllegalStateException("WARP 帳戶註冊失敗：${it.message}") }
+        } else {
+            null
+        }
+        return ConfigBuilder.build(plan, inbound, warpAccount) to plan.label
     }
 
     private fun overrideOptions() = OverrideOptions().apply {
         // keep this app's own traffic (hourly list download) off the tunnel
         if (!proxyMode) excludePackage = StringArray(listOf(service.packageName))
+    }
+
+    private fun noNodeMessage() = if (Prefs.warpMode.value) {
+        "呢個選擇暫時冇可以接駁 WARP 嘅節點（雲端每 10 分鐘重測），請揀其他國家，或者關閉「經 WARP 出口」"
+    } else {
+        "冇可用節點，請先更新節點清單或調整篩選"
     }
 
     private fun describe(label: String) = if (proxyMode) {
@@ -147,7 +161,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
         try {
             if (NodeRepository.list.value == null) NodeRepository.refresh()
             val (config, label) = currentConfig()
-                ?: error("冇可用節點，請先更新節點清單或調整篩選")
+                ?: error(noNodeMessage())
             DefaultNetworkMonitor.start()
             val server = CommandServer(this, this)
             server.start()
@@ -168,7 +182,7 @@ class BoxCore(private val service: Service, private val vpn: VpnService?) : Plat
     private suspend fun reload() = lock.withLock {
         val server = commandServer ?: return@withLock
         try {
-            val (config, label) = currentConfig() ?: error("冇可用節點")
+            val (config, label) = currentConfig() ?: error(noNodeMessage())
             server.startOrReloadService(config, overrideOptions())
             VpnState._label.value = describe(label)
             currentText = "已連線：${describe(label)}"

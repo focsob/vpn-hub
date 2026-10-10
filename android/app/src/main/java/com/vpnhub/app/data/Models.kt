@@ -42,6 +42,9 @@ data class Node(
     val ovpn: String? = null,
     @SerialName("ip_type") val ipType: String = "unknown",
     val isp: String = "",
+    /** Tested in the cloud: phone -> this node -> WARP works, and WARP then exits in this country. */
+    @SerialName("warp_cc") val warpCc: String? = null,
+    @SerialName("warp_ms") val warpMs: Int = 0,
 ) {
 }
 

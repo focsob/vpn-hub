@@ -42,6 +42,23 @@ object Prefs {
         sp.edit().putString("split_rules", json.encodeToString(ListSerializer(SplitRule.serializer()), rules)).apply()
     }
 
+    private val _warpMode = MutableStateFlow(sp.getBoolean("warp_mode", false))
+
+    /** WARP chain: phone -> chosen country's node -> Cloudflare WARP, so WARP exits in that country. */
+    val warpMode: StateFlow<Boolean> = _warpMode
+
+    fun setWarpMode(on: Boolean) {
+        _warpMode.value = on
+        sp.edit().putBoolean("warp_mode", on).apply()
+    }
+
+    /** This device's own WARP account. */
+    var warpAccount: WarpAccount?
+        get() = sp.getString("warp_account", null)?.let {
+            runCatching { json.decodeFromString(WarpAccount.serializer(), it) }.getOrNull()
+        }
+        set(v) = sp.edit().putString("warp_account", v?.let { json.encodeToString(WarpAccount.serializer(), it) }).apply()
+
     /** Release tag the user chose to skip in the update prompt. */
     var skippedUpdate: String
         get() = sp.getString("skipped_update", "") ?: ""

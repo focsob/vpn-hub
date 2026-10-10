@@ -22,6 +22,8 @@ object ConfigBuilder {
         val routes: List<RouteGroup> = emptyList(),
         /** Split rules whose country currently has no working node (their apps use the main choice). */
         val unavailable: List<String> = emptyList(),
+        /** Finish through Cloudflare WARP: via [nodes] when not empty, otherwise straight from the phone. */
+        val warp: Boolean = false,
     )
 
     sealed class Inbound {
@@ -43,37 +45,15 @@ object ConfigBuilder {
         ipTypes: Set<String>,
         groupSize: Int,
         splitRules: List<SplitRule> = emptyList(),
+        warpMode: Boolean = false,
     ): Plan? {
         val usable = usableNodes(list, protocols, ipTypes)
-        if (usable.isEmpty()) return null
-        val main = when (selection) {
-            is Selection.Single -> {
-                val node = usable.firstOrNull { it.id == selection.nodeId }
-                if (node != null) {
-                    Plan(listOf(node), "${Countries.flag(node.country)} ${node.name} · ${Protocols.label(node.protocol)}")
-                } else {
-                    // node vanished in a refresh: fall back to the fastest in the same country
-                    val old = list?.nodes?.firstOrNull { it.id == selection.nodeId }
-                    val sameCountry = usable.filter { it.country == old?.country }.take(groupSize)
-                    if (sameCountry.isNotEmpty()) {
-                        Plan(sameCountry, "${Countries.flag(old!!.country)} ${Countries.name(old.country)}（自動）")
-                    } else {
-                        Plan(usable.take(groupSize), "⚡ 全部最快（自動）")
-                    }
-                }
-            }
-            is Selection.Country -> {
-                val nodes = usable.filter { it.country == selection.code }.take(groupSize)
-                if (nodes.isEmpty()) {
-                    return null
-                } else {
-                    Plan(nodes, "${Countries.flag(selection.code)} ${Countries.name(selection.code)}（自動揀最快）")
-                }
-            }
-            Selection.Fastest -> Plan(
-                usable.filter { it.country != "WARP" }.ifEmpty { usable }.take(groupSize),
-                "⚡ 全部最快（自動）",
-            )
+        val main = when {
+            // "WARP" row: connect to WARP straight from the phone (exit near you)
+            selection == Selection.Country(WARP) -> Plan(emptyList(), "☁️ Cloudflare WARP（直接・就近出口）", warp = true)
+            warpMode -> warpPlan(usable, list, selection, groupSize) ?: return null
+            usable.isEmpty() -> return null
+            else -> normalPlan(usable, list, selection, groupSize) ?: return null
         }
 
         val routes = mutableListOf<RouteGroup>()
@@ -93,7 +73,68 @@ object ConfigBuilder {
         return main.copy(routes = routes, unavailable = unavailable)
     }
 
-    fun build(plan: Plan, inbound: Inbound = Inbound.Tun): String {
+    const val WARP = "WARP"
+
+    /**
+     * WARP chain: the phone reaches WARP through nodes that the cloud verified can carry it, grouped by the
+     * country WARP then exits in. If the node in use dies the group switches to another one of the same
+     * group; if every node of that country is down, traffic stops instead of leaking out somewhere else.
+     */
+    private fun warpPlan(usable: List<Node>, list: NodeList?, selection: Selection, groupSize: Int): Plan? {
+        val capable = usable.filter { it.warpCc != null }.sortedBy { if (it.warpMs <= 0) Int.MAX_VALUE else it.warpMs }
+        if (capable.isEmpty()) return null
+        fun country(cc: String, auto: Boolean = true) = capable.filter { it.warpCc == cc }.take(groupSize)
+            .takeIf { it.isNotEmpty() }
+            ?.let { Plan(it, "☁️ WARP ${Countries.flag(cc)} ${Countries.name(cc)}" + if (auto) "（經 ${it.size} 個節點，自動切換）" else "", warp = true) }
+        return when (selection) {
+            is Selection.Single -> {
+                val node = capable.firstOrNull { it.id == selection.nodeId }
+                if (node != null) {
+                    Plan(listOf(node), "☁️ WARP ${Countries.flag(node.warpCc!!)} ${Countries.name(node.warpCc)} · 經 ${node.name}", warp = true)
+                } else {
+                    val old = list?.nodes?.firstOrNull { it.id == selection.nodeId }
+                    (old?.warpCc ?: old?.country)?.let { country(it) }
+                        ?: Plan(capable.take(groupSize), "☁️ WARP（自動）", warp = true)
+                }
+            }
+            is Selection.Country -> country(selection.code)
+            Selection.Fastest -> Plan(capable.take(groupSize), "☁️ WARP · 全部最快（自動）", warp = true)
+        }
+    }
+
+    private fun normalPlan(usable: List<Node>, list: NodeList?, selection: Selection, groupSize: Int): Plan? {
+        return when (selection) {
+            is Selection.Single -> {
+                val node = usable.firstOrNull { it.id == selection.nodeId }
+                if (node != null) {
+                    Plan(listOf(node), "${Countries.flag(node.country)} ${node.name} · ${Protocols.label(node.protocol)}")
+                } else {
+                    // node vanished in a refresh: fall back to the fastest in the same country
+                    val old = list?.nodes?.firstOrNull { it.id == selection.nodeId }
+                    val sameCountry = usable.filter { it.country == old?.country }.take(groupSize)
+                    if (sameCountry.isNotEmpty()) {
+                        Plan(sameCountry, "${Countries.flag(old!!.country)} ${Countries.name(old.country)}（自動）")
+                    } else {
+                        Plan(usable.take(groupSize), "⚡ 全部最快（自動）")
+                    }
+                }
+            }
+            is Selection.Country -> {
+                val nodes = usable.filter { it.country == selection.code }.take(groupSize)
+                if (nodes.isEmpty()) {
+                    null
+                } else {
+                    Plan(nodes, "${Countries.flag(selection.code)} ${Countries.name(selection.code)}（自動揀最快）")
+                }
+            }
+            Selection.Fastest -> Plan(
+                usable.filter { it.country != "WARP" }.ifEmpty { usable }.take(groupSize),
+                "⚡ 全部最快（自動）",
+            )
+        }
+    }
+
+    fun build(plan: Plan, inbound: Inbound = Inbound.Tun, warpAccount: WarpAccount? = null): String {
         val outbounds = mutableListOf<JsonObject>()
         val endpoints = mutableListOf<JsonObject>()
         // each node is defined once even when several groups use it
@@ -121,7 +162,22 @@ object ConfigBuilder {
             put("idle_timeout", "30m")
         }
 
-        val groups = mutableListOf(urltest("proxy", tagsFor(plan.nodes)))
+        val groups = mutableListOf<JsonObject>()
+        // where everything not matched by a split rule goes
+        val finalTag = if (plan.warp) {
+            requireNotNull(warpAccount) { "WARP account missing" }
+            val detour = if (plan.nodes.isEmpty()) {
+                null
+            } else {
+                groups += urltest("warp-up", tagsFor(plan.nodes))
+                "warp-up"
+            }
+            endpoints += Warp.endpoint(warpAccount, "warp", detour)
+            "warp"
+        } else {
+            groups += urltest("proxy", tagsFor(plan.nodes))
+            "proxy"
+        }
         // per-app split routing needs the TUN (Android only reports app owners to the active VPN app)
         val routes = if (inbound is Inbound.Tun) plan.routes else emptyList()
         val routeRules = mutableListOf<JsonObject>()
@@ -147,7 +203,7 @@ object ConfigBuilder {
                         put("type", "https")
                         put("tag", "remote")
                         put("server", "1.1.1.1")
-                        put("detour", "proxy")
+                        put("detour", finalTag)
                     }
                     addJsonObject {
                         put("type", "local")
@@ -203,7 +259,7 @@ object ConfigBuilder {
                     }
                     routeRules.forEach { add(it) }
                 }
-                put("final", "proxy")
+                put("final", finalTag)
                 put("auto_detect_interface", true)
                 put("default_domain_resolver", "local")
             }
