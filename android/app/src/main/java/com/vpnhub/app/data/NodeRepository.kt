@@ -48,7 +48,9 @@ object NodeRepository {
             }
             _refreshing.value = true
             try {
-                val text = download(url)
+                // prefer the gzip copy published next to nodes.json; fall back to the plain file
+                val text = (if (url.endsWith(".json")) runCatching { download("$url.gz", gzipped = true) }.getOrNull() else null)
+                    ?: download(url)
                 val parsed = json.decodeFromString(NodeList.serializer(), text)
                 if (parsed.nodes.isEmpty()) error("清單係空嘅，保留舊資料")
                 val tmp = File(cacheFile.path + ".tmp")
@@ -66,7 +68,7 @@ object NodeRepository {
         }
     }
 
-    private fun download(url: String): String {
+    private fun download(url: String, gzipped: Boolean = false): String {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 15_000
         conn.readTimeout = 30_000
@@ -74,7 +76,7 @@ object NodeRepository {
         conn.setRequestProperty("Cache-Control", "no-cache")
         try {
             if (conn.responseCode !in 200..299) error("HTTP ${conn.responseCode}")
-            val stream = if (conn.contentEncoding == "gzip") GZIPInputStream(conn.inputStream) else conn.inputStream
+            val stream = if (gzipped || conn.contentEncoding == "gzip") GZIPInputStream(conn.inputStream) else conn.inputStream
             return stream.bufferedReader().use { it.readText() }
         } finally {
             conn.disconnect()

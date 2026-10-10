@@ -296,6 +296,10 @@ def write_output(nodes: list[dict], out_dir: str, stats: dict) -> None:
             "stats": stats, "nodes": records}
     with open(os.path.join(out_dir, "nodes.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    # compressed copy: the app downloads this one (about 6x smaller on mobile data)
+    import gzip
+    with gzip.open(os.path.join(out_dir, "nodes.json.gz"), "wt", encoding="utf-8", compresslevel=9) as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 
     def b64(lines):
         return base64.b64encode("\n".join(lines).encode()).decode()
