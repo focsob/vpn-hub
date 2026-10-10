@@ -79,7 +79,7 @@ jobs:
             -PnodesUrl="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/nodes/nodes.json" \
             -PbuildNumber="${GITHUB_RUN_NUMBER}" \
             -PrepoSlug="${GITHUB_REPOSITORY}" 2>&1 | tee "$GITHUB_WORKSPACE/logs/gradle.log"
-          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/VPNHub.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/FatboVPNhub.apk"
 
       - name: Upload build log to the logs branch
         if: always()
@@ -95,8 +95,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: VPNHub-apk
-          path: VPNHub.apk
+          name: FatboVPNhub-apk
+          path: FatboVPNhub.apk
 
       - name: Prepare release notes
         run: python3 .github/scripts/release_notes.py > release-notes.md
@@ -105,7 +105,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: VPN Hub 1.0.${{ github.run_number }}
-          files: VPNHub.apk
+          name: Fatbo VPNhub 1.0.${{ github.run_number }}
+          files: FatboVPNhub.apk
           make_latest: true
           body_path: release-notes.md
